@@ -1,0 +1,550 @@
+const createError = require('http-errors');
+
+const prisma = require('../../libs/prisma');
+const { TransactionType, TransactionStatus } = require('@prisma/client');
+
+module.exports = {
+    getTransactions: async (payload) => {
+        let { page, limit, search, sort, order, dayRange, grade, user } = payload;
+
+        let offsetNumber = (page - 1) * limit;
+
+        let orderBy;
+        if (sort === 'studentName') {
+            orderBy = { student: { name: order } };
+        } else if (sort === 'grade') {
+            orderBy = { student: { grade: order } };
+        } else if (sort === 'amount') {
+            orderBy = { amount: order };
+        } else if (sort === 'balance') {
+            orderBy = { student: { balance: order } };
+        } else if (sort === 'date') {
+            orderBy = { date: order };
+        } else {
+            orderBy = { updatedAt: order };
+        }
+
+        let conditions = { AND: [] };
+
+        return await prisma.$transaction(async (tx) => {
+            if (user.role === 'Teacher') {
+                let currUser = await tx.user.findUnique({
+                    where: { id: user.id },
+                    select: { teacher: { select: { grade: true } } },
+                });
+
+                conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+            } else if (grade && user.role === 'Superadmin') {
+                conditions.AND.push({ student: { grade } });
+            } else if (user.role === 'Parent') {
+                conditions.AND.push({ student: { parentId: user.id } });
+            }
+
+            if (search) {
+                conditions.AND.push({
+                    OR: [
+                        {
+                            student: {
+                                name: { contains: search, mode: 'insensitive' },
+                            },
+                        },
+                    ],
+                });
+            }
+
+            let filter = {};
+
+            if (dayRange) {
+                let endDate = new Date();
+                let startDate = new Date();
+                startDate.setDate(startDate.getDate() - dayRange);
+
+                conditions.AND.push({
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                });
+
+                filter.dayRange = dayRange;
+            }
+
+            let result = await tx.transaction.findMany({
+                take: limit,
+                skip: offsetNumber,
+                where: conditions,
+                select: {
+                    id: true,
+                    amount: true,
+                    date: true,
+                    status: true,
+                    type: true,
+                    details: true,
+                    updatedAt: true,
+                },
+                orderBy,
+            });
+
+            let data = result.map((r) => ({
+                id: r.id,
+                name: r.details.studentName,
+                grade: r.details.studentGrade,
+                amount: r.amount,
+                type: r.type,
+                balance: r.details.balance,
+                date: r.date,
+                phoneNumber: r.details.phoneNumber,
+                status: r.status,
+                updatedAt: r.updatedAt,
+            }));
+
+            let total = await tx.transaction.count({ where: conditions });
+
+            let meta = {
+                page,
+                limit,
+                totalPages: total > 0 ? Math.ceil(total / limit) : 1,
+                totalResults: total,
+                ...(search ? { search } : {}),
+                sort,
+                order,
+                ...(filter ? filter : {}),
+            };
+
+            return { data, meta };
+        });
+    },
+
+    getTransactionById: async (payload) => {
+        let { id, user } = payload;
+
+        let conditions = { AND: [{ id }] };
+        if (user.role === 'Teacher') {
+            let currUser = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: { teacher: { select: { grade: true } } },
+            });
+
+            conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+        } else if (user.role === 'Parent') {
+            conditions.AND.push({ student: { parentId: user.id } });
+        }
+
+        let result = await prisma.transaction.findFirst({
+            where: conditions,
+            select: {
+                id: true,
+                amount: true,
+                date: true,
+                status: true,
+                type: true,
+                details: true,
+                withdrawalReason: { select: { reason: true } },
+                approvedBy: true,
+                approvedAt: true,
+                updatedAt: true,
+            },
+        });
+
+        if (!result) {
+            throw createError(404, 'Transaction not found');
+        }
+
+        return {
+            id: result.id,
+            name: result.details.studentName,
+            grade: result.details.grade,
+            amount: result.amount,
+            type: result.type,
+            date: result.date,
+            phoneNumber: result.details.phoneNumber,
+            status: result.status,
+            withdrawalReason: result.withdrawalReason?.reason,
+            approvedBy: r.approvedBy,
+            approvedAt: r.approvedAt,
+            updatedAt: result.updatedAt,
+        };
+    },
+
+    updateTransaction: async (payload) => {
+        let { id, amount, user } = payload;
+
+        return prisma.$transaction(async (tx) => {
+            let conditions = { AND: [{ id }] };
+
+            if (user.role === 'Teacher') {
+                let currUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    select: { teacher: { select: { grade: true } } },
+                });
+
+                conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+            }
+
+            let existingTransaction = await tx.transaction.findFirst({
+                where: conditions,
+                select: {
+                    amount: true,
+                    type: true,
+                    student: { select: { id: true } },
+                    details: true,
+                },
+            });
+
+            if (!existingTransaction) {
+                throw createError(404, 'Transaction not found');
+            }
+
+            let balanceDiff;
+
+            if (existingTransaction.type === TransactionType.DEPOSIT) {
+                balanceDiff = amount - existingTransaction.amount;
+            } else if (existingTransaction.type === TransactionType.WITHDRAWAL) {
+                balanceDiff = existingTransaction.amount - amount;
+            }
+
+            let updatedStudent = await tx.student.update({
+                where: { id: existingTransaction.student.id },
+                data: { balance: { increment: balanceDiff } },
+                select: { balance: true },
+            });
+
+            let result = await tx.transaction.update({
+                where: { id },
+                data: {
+                    amount,
+                    details: { ...existingTransaction.details, balance: updatedStudent.balance },
+                },
+                select: {
+                    id: true,
+                    amount: true,
+                    date: true,
+                    type: true,
+                    details: true,
+                    updatedAt: true,
+                },
+            });
+
+            return {
+                id: result.id,
+                name: result.details.studentName,
+                amount: result.amount,
+                balance: result.details.balance,
+                type: result.type,
+                date: result.date,
+                updatedAt: result.updatedAt,
+            };
+        });
+    },
+
+    deleteTransaction: async (payload) => {
+        let { id, user } = payload;
+
+        return prisma.$transaction(async (tx) => {
+            let conditions = { AND: [{ id }] };
+            if (user.role === 'Teacher') {
+                let currUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    select: { teacher: { select: { grade: true } } },
+                });
+
+                conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+            }
+
+            let transaction = await tx.transaction.findFirst({
+                where: conditions,
+                select: {
+                    type: true,
+                    amount: true,
+                    student: { select: { id: true, balance: true } },
+                },
+            });
+
+            if (!transaction) {
+                throw createError(404, 'Transaction not found');
+            }
+            if (transaction.type === TransactionType.DEPOSIT) {
+                await tx.student.update({
+                    where: { id: transaction.student.id },
+                    data: { balance: { decrement: transaction.amount } },
+                });
+            } else if (transaction.type === TransactionType.WITHDRAWAL) {
+                await tx.student.update({
+                    where: { id: transaction.student.id },
+                    data: { balance: { increment: transaction.amount } },
+                });
+            }
+
+            await tx.transaction.delete({
+                where: { id },
+            });
+
+            return null;
+        });
+    },
+
+    getTotalAmounts: async (payload) => {
+        let { user } = payload;
+
+        return await prisma.$transaction(async (tx) => {
+            let conditions = { AND: [] };
+            if (user.role === 'Teacher') {
+                let currUser = await tx.user.findUnique({
+                    where: { id: user.id },
+                    select: { teacher: { select: { grade: true } } },
+                });
+
+                conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+            }
+            let totalDeposits = await tx.transaction.aggregate({
+                _sum: {
+                    amount: true,
+                },
+                where: { ...conditions, type: TransactionType.DEPOSIT },
+            });
+            let totalWithdrawals = await tx.transaction.aggregate({
+                _sum: {
+                    amount: true,
+                },
+                where: { ...conditions, type: TransactionType.WITHDRAWAL },
+            });
+            let totalBalances = await tx.student.aggregate({
+                _sum: {
+                    balance: true,
+                },
+                where: { ...conditions.student },
+            });
+
+            return {
+                totalDeposits: totalDeposits._sum.amount ?? 0,
+                totalWithdrawals: totalWithdrawals._sum.amount ?? 0,
+                totalBalances: totalBalances._sum.balance ?? 0,
+            };
+        });
+    },
+
+    deposit: async (payload) => {
+        let { studentId, amount, user } = payload;
+
+        return prisma.$transaction(async (tx) => {
+            let student = await tx.student.findUnique({
+                where: { id: studentId },
+                select: {
+                    name: true,
+                    grade: true,
+                    parent: { select: { profile: { select: { phoneNumber: true } } } },
+                },
+            });
+
+            if (!student) {
+                throw createError(404, 'Student not found');
+            }
+
+            if (user.role === 'Teacher') {
+                let currTeacher = await tx.user.findUnique({
+                    where: { id: user.id },
+                    select: { teacher: { select: { grade: true } } },
+                });
+
+                if (student.grade !== currTeacher.teacher.grade) {
+                    throw createError(404, 'Student not found');
+                }
+            }
+
+            let updatedStudent = await tx.student.update({
+                where: { id: studentId },
+                data: { balance: { increment: amount } },
+                select: { balance: true },
+            });
+
+            let data = {
+                amount,
+                date: new Date(),
+                type: TransactionType.DEPOSIT,
+                status: TransactionStatus.SUCCESS,
+                details: {
+                    studentName: student.name,
+                    studentGrade: student.grade,
+                    parentPhoneNumber: student.parent.profile.phoneNumber,
+                    balance: updatedStudent.balance,
+                },
+                student: { connect: { id: studentId } },
+            };
+
+            let result = await tx.transaction.create({
+                data,
+                select: {
+                    id: true,
+                    amount: true,
+                    date: true,
+                    type: true,
+                    details: true,
+                    updatedAt: true,
+                },
+            });
+
+            return {
+                id: result.id,
+                name: result.details.studentName,
+                amount: result.amount,
+                balance: updatedStudent.balance,
+                type: result.type,
+                date: result.date,
+                updatedAt: result.updatedAt,
+            };
+        });
+    },
+
+    withdraw: async (payload) => {
+        let { amount, reason, user, studentId } = payload;
+
+        return prisma.$transaction(async (tx) => {
+            if (user.role === 'Parent') {
+                let parent = await tx.user.findUnique({
+                    where: { id: user.id },
+                    select: {
+                        student: { select: { id: true } },
+                    },
+                });
+
+                studentId = parent.student.id;
+            }
+
+            let student = await tx.student.findUnique({
+                where: { id: studentId },
+                select: {
+                    balance: true,
+                    name: true,
+                    grade: true,
+                    parent: { select: { profile: { select: { phoneNumber: true } } } },
+                },
+            });
+
+            if (!student) {
+                throw createError(404, 'Student not found');
+            }
+
+            if (student.balance < amount) {
+                throw createError(
+                    400,
+                    `Insufficient balance. Current balance is ${student.balance}`
+                );
+            }
+
+            let data = {
+                amount,
+                date: new Date(),
+                type: TransactionType.WITHDRAWAL,
+                details: {
+                    studentName: student.name,
+                    studentGrade: student.grade,
+                    parentPhoneNumber: student.parent.profile.phoneNumber,
+                },
+                withdrawalReason: { create: { reason } },
+                student: { connect: { id: studentId } },
+            };
+
+            let result = await tx.transaction.create({
+                data,
+                select: {
+                    id: true,
+                    amount: true,
+                    date: true,
+                    type: true,
+                    status: true,
+                    details: true,
+                    withdrawalReason: { select: { reason: true } },
+                    updatedAt: true,
+                },
+            });
+
+            return {
+                id: result.id,
+                name: result.details.studentName,
+                amount: result.amount,
+                type: result.type,
+                date: result.date,
+                status: result.status,
+                withdrawalReason: result.withdrawalReason.reason,
+                updatedAt: result.updatedAt,
+            };
+        });
+    },
+
+    approveWithdrawal: async (payload) => {
+        let { id, user } = payload;
+
+        return await prisma.$transaction(async (tx) => {
+            let transaction = await tx.transaction.findFirst({
+                where: {
+                    id: id,
+                    type: TransactionType.WITHDRAWAL,
+                    status: TransactionStatus.PENDING,
+                },
+                select: {
+                    id: true,
+                    amount: true,
+                    date: true,
+                    type: true,
+                    status: true,
+                    details: true,
+                    student: { select: { id: true } },
+                    withdrawalReason: { select: { reason: true } },
+                    updatedAt: true,
+                },
+            });
+
+            if (!transaction) {
+                throw createError(404, 'Transaction not found');
+            }
+
+            let updatedStudent = await tx.student.update({
+                where: { id: transaction.student.id },
+                data: { balance: { decrement: transaction.amount } },
+                select: { balance: true },
+            });
+
+            let approver = await tx.user.findUnique({
+                where: { id: user.id },
+                select: { profile: { select: { name: true } } },
+            });
+
+            let result = await tx.transaction.update({
+                where: { id: id },
+                data: {
+                    status: TransactionStatus.SUCCESS,
+                    approvedBy: approver.profile.name,
+                    approvedAt: new Date(),
+                    details: { ...transaction.details, balance: updatedStudent.balance },
+                    approver: { connect: { id: user.id } },
+                },
+                select: {
+                    id: true,
+                    amount: true,
+                    date: true,
+                    status: true,
+                    type: true,
+                    details: true,
+                    withdrawalReason: { select: { reason: true } },
+                    approvedBy: true,
+                    approvedAt: true,
+                    updatedAt: true,
+                },
+            });
+
+            return {
+                id: result.id,
+                name: result.details.studentName,
+                amount: result.amount,
+                balance: updatedStudent.balance,
+                type: result.type,
+                date: result.date,
+                status: result.status,
+                approvedBy: result.approvedBy,
+                approvedAt: result.approvedAt,
+                withdrawalReason: result.withdrawalReason.reason,
+                updatedAt: result.updatedAt,
+            };
+        });
+    },
+};
