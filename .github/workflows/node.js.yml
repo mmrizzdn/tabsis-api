@@ -32,8 +32,9 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
             if [ ! -d ${{ secrets.APP_DIR }} ]; then
-              echo "App directory does not exist. Cloning repository..."
-              git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
+            	echo "App directory does not exist. Cloning repository..."
+            	git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
+          	fi
 
             cd ${{ secrets.APP_DIR }}
 
