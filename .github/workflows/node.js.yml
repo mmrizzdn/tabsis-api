@@ -18,23 +18,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
       - name: Deploy to Server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
             set -e
 
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            
+
             if [ ! -d ${{ secrets.APP_DIR }} ]; then
-            	echo "App directory does not exist. Cloning repository..."
-            	git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
-          	fi
+              echo "App direuctory does not exist. Cloning repository..."
+              git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
+            fi
 
             cd ${{ secrets.APP_DIR }}
 
@@ -46,5 +45,3 @@ jobs:
             pm2 reload all --update-env || pm2 start ecosystem.config.cjs
             pm2 status
             pm2 logs --lines 20 --nostream
-            
-          EOF
