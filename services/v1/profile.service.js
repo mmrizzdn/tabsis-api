@@ -137,6 +137,10 @@ module.exports = {
                 });
 
                 await deleteFile(oldFile.imagekitId);
+
+                await tx.file.delete({
+                    where: { id: profile.avatarId },
+                });
             }
 
             let data = {
