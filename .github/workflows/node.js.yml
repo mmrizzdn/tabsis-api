@@ -4,43 +4,43 @@
 name: Node.js CI
 
 on:
-    push:
-        branches: ["main"]
-    pull_request:
-        branches: ["main"]
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
 
 jobs:
-    deploy:
-        environment: development-server
-        runs-on: self-hosted
+  deploy:
+    environment: development-server
+    runs-on: self-hosted
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-            - name: Setup SSH
-              uses: webfactory/ssh-agent@v0.9.0
-              with:
-                  ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-            - name: Deploy to Server
-              run: |
-                  ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-                      set -e
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+              set -e
 
-                      if [ ! -d ${{ secrets.APP_DIR }} ]; then
-                          echo "App direuctory does not exist. Cloning repository..."
-                          git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
-                      fi
+              if [ ! -d ${{ secrets.APP_DIR }} ]; then
+                  echo "App direuctory does not exist. Cloning repository..."
+                  git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
+              fi
 
-                      cd ${{ secrets.APP_DIR }}
+              cd ${{ secrets.APP_DIR }}
 
-                      git fetch --all
-                      git reset --hard origin/main || git reset --hard origin/master
+              git fetch --all
+              git reset --hard origin/main || git reset --hard origin/master
 
-                      npm install
+              npm install
 
-                      pm2 reload all --update-env || pm2 start ecosystem.config.cjs
-                      pm2 status
-                      pm2 logs --lines 20 --nostream
-                  EOF
+              pm2 reload all --update-env || pm2 start ecosystem.config.cjs
+              pm2 status
+              pm2 logs --lines 20 --nostream
+          EOF
