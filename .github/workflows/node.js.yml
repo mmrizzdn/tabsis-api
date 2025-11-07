@@ -57,7 +57,7 @@ jobs:
                   echo "Starting ngrok tunnel..."
                   pkill ngrok || true
 
-                  nohup ngrok http ${{ secrets.APP_PORT }} --authtoken "$NGROK_TOKEN" --log=stdout > /tmp/ngrok.log 2>&1 &
+                  nohup ngrok http ${{ secrets.PORT }} --authtoken "$NGROK_TOKEN" --host-header=rewrite --log=stdout > /tmp/ngrok.log 2>&1 &
                   sleep 3
                   
                   NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 || echo "")
