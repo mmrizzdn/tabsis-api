@@ -48,6 +48,9 @@ jobs:
 
               npm install
 
+              echo "Running Prisma migrations..."
+              npx prisma migrate deploy
+
               pm2 reload all --update-env || pm2 start ecosystem.config.cjs
 
               if [ -n "$NGROK_TOKEN" ]; then
