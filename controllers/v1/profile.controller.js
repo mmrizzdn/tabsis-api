@@ -1,7 +1,6 @@
-const path = require('path');
-
 const { getProfile, updateProfile, updateAvatar, deleteAvatar } = require('../../services/v1/profile.service');
 const createSuccess = require('../../utils/http-success');
+const cache = require('../../libs/cache');
 
 module.exports = {
     getProfile: async (req, res, next) => {
@@ -29,6 +28,8 @@ module.exports = {
             req.user.name = result.name;
             req.user.username = result.username;
 
+            await cache.delByPattern(`profile:user:${req.user.id}:*`);
+
             return createSuccess.ok(res, 'Profile updated', result);
         } catch (err) {
             next(err);
@@ -42,6 +43,8 @@ module.exports = {
                 user: req.user,
             });
 
+            await cache.delByPattern(`profile:user:${req.user.id}:*`);
+
             return createSuccess.ok(res, 'Avatar updated', result);
         } catch (err) {
             next(err);
@@ -51,6 +54,8 @@ module.exports = {
     deleteAvatar: async (req, res, next) => {
         try {
             let result = await deleteAvatar({ user: req.user });
+
+            await cache.delByPattern(`profile:user:${req.user.id}:*`);
 
             return createSuccess.ok(res, 'Avatar deleted', result);
         } catch (err) {

@@ -1,4 +1,3 @@
-const { transaction } = require('../../libs/prisma');
 const {
     getTransactions,
     getTransactionById,
@@ -10,6 +9,7 @@ const {
     approveWithdrawal,
 } = require('../../services/v1/transaction.service');
 const createSuccess = require('../../utils/http-success');
+const cache = require('../../libs/cache');
 
 module.exports = {
     getTransactions: async (req, res, next) => {
@@ -56,6 +56,9 @@ module.exports = {
                 user: req.user,
             });
 
+            await cache.delByPattern('transactions:*');
+            await cache.delByPattern('students:list:*');
+
             return createSuccess.ok(res, 'Transaction updated', result);
         } catch (err) {
             next(err);
@@ -65,6 +68,9 @@ module.exports = {
     deleteTransaction: async (req, res, next) => {
         try {
             let result = await deleteTransaction({ id: req.params.transactionId, user: req.user });
+
+            await cache.delByPattern('transactions:*');
+            await cache.delByPattern('students:list:*');
 
             return createSuccess.ok(res, 'OK', result);
         } catch (err) {
@@ -92,6 +98,9 @@ module.exports = {
                 user: req.user,
             });
 
+            await cache.delByPattern('transactions:*');
+            await cache.delByPattern('students:list:*');
+
             return createSuccess.created(res, 'Deposit trransaction created', result);
         } catch (err) {
             next(err);
@@ -109,6 +118,8 @@ module.exports = {
                 studentId,
             });
 
+            await cache.delByPattern('transactions:*');
+
             return createSuccess.created(res, 'Withdrawal transaction created', result);
         } catch (err) {
             next(err);
@@ -121,6 +132,9 @@ module.exports = {
                 id: req.params.transactionId,
                 user: req.user,
             });
+
+            await cache.delByPattern('transactions:*');
+            await cache.delByPattern('students:list:*');
 
             return createSuccess.ok(res, 'Withdrawal approved', result);
         } catch (err) {

@@ -1,4 +1,5 @@
 const { z } = require('zod');
+
 module.exports = {
     updateProfileSchema: () =>
         z
@@ -20,7 +21,6 @@ module.exports = {
                 confirmPassword: z.string().trim().optional(),
             })
             .superRefine((data, ctx) => {
-                console.log(data);
                 if (data.password && !data.confirmPassword) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,

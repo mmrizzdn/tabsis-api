@@ -8,8 +8,9 @@ const { image } = require('../../libs/multer');
 const { validate } = require('../../middlewares/validator.middleware');
 const { validateFile } = require('../../middlewares/validator.middleware');
 const { updateProfileSchema, updateAvatarSchema } = require('../../validators/v1/profile.validator');
+const { cacheResponse } = require('../../middlewares/cache.middleware');
 
-router.get('/', auth, permit('profile', 'read'), getProfile);
+router.get('/', auth, permit('profile', 'read'), cacheResponse({ prefix: 'profile' }), getProfile);
 router.patch('/', auth, permit('profile', 'update'), validate(updateProfileSchema, 'body'), updateProfile);
 router.post(
     '/avatar',

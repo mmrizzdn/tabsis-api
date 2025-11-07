@@ -7,6 +7,7 @@
 var app = require("../app");
 var debug = require("debug")("tabsis:server");
 var http = require("http");
+var logger = require("../libs/logger");
 
 /**
  * Get port from environment and store in Express.
@@ -63,11 +64,11 @@ function onError(error) {
     // handle specific listen errors with friendly messages
     switch (error.code) {
         case "EACCES":
-            console.error(bind + " requires elevated privileges");
+            logger.error(bind + " requires elevated privileges", { error: error.message, code: error.code });
             process.exit(1);
             break;
         case "EADDRINUSE":
-            console.error(bind + " is already in use");
+            logger.error(bind + " is already in use", { error: error.message, code: error.code });
             process.exit(1);
             break;
         default:
@@ -82,5 +83,8 @@ function onError(error) {
 function onListening() {
     var addr = server.address();
     var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
-    console.log("Listening on " + bind);
+    logger.info("Server listening on " + bind, {
+        port: typeof addr === "string" ? addr : addr.port,
+        env: process.env.NODE_ENV || "development",
+    });
 }

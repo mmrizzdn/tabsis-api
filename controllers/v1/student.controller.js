@@ -5,6 +5,7 @@ const {
     graduate,
 } = require('../../services/v1/student.service');
 const createSuccess = require('../../utils/http-success');
+const cache = require('../../libs/cache');
 
 module.exports = {
     getTotalStudents: async (req, res, next) => {
@@ -36,6 +37,8 @@ module.exports = {
         try {
             let result = await promoteToNextGrade({ studentIds: req.body.studentIds });
 
+            await cache.delByPattern('students:*');
+
             return createSuccess.ok(res, 'OK', result);
         } catch (err) {
             next(err);
@@ -45,6 +48,8 @@ module.exports = {
     graduate: async (req, res, next) => {
         try {
             let result = await graduate({ studentIds: req.body.studentIds });
+
+            await cache.delByPattern('students:*');
 
             return createSuccess.ok(res, 'OK', result);
         } catch (err) {

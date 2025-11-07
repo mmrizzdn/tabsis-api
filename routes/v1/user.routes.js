@@ -21,11 +21,26 @@ const {
     getTeacherUsers,
     getTeacherUserById,
 } = require('../../controllers/v1/user.controller');
+const { cacheResponse } = require('../../middlewares/cache.middleware');
 
 // Parent User Routes
 router.post('/parents', auth, permit('parent', 'create '), validate(createParentUserSchema, 'body'), createParentUser);
-router.get('/parents', auth, permit('parent', 'read'), validate(getParentUsersSchema, 'query'), getParentUsers);
-router.get('/parents/:userId', auth, permit('parent', 'read'), validate(userParamsSchema, 'params'), getParentUserById);
+router.get(
+    '/parents',
+    auth,
+    permit('parent', 'read'),
+    validate(getParentUsersSchema, 'query'),
+    cacheResponse({ prefix: 'users:parents:list' }),
+    getParentUsers
+);
+router.get(
+    '/parents/:userId',
+    auth,
+    permit('parent', 'read'),
+    validate(userParamsSchema, 'params'),
+    cacheResponse({ prefix: 'users:parents:detail' }),
+    getParentUserById
+);
 router.patch(
     '/parents/:userId',
     auth,
@@ -50,12 +65,19 @@ router.post(
     validate(createTeacherUserSchema, 'body'),
     createTeacherUser
 );
-router.get('/teachers', auth, permit('teacher', 'read'), getTeacherUsers);
+router.get(
+    '/teachers',
+    auth,
+    permit('teacher', 'read'),
+    cacheResponse({ prefix: 'users:teachers:list' }),
+    getTeacherUsers
+);
 router.get(
     '/teachers/:userId',
     auth,
     permit('teacher', 'read'),
     validate(userParamsSchema, 'params'),
+    cacheResponse({ prefix: 'users:teachers:detail' }),
     getTeacherUserById
 );
 

@@ -21,14 +21,29 @@ const {
     updateTransaction,
     approveWithdrawal,
 } = require('../../controllers/v1/transaction.controller');
+const { cacheResponse } = require('../../middlewares/cache.middleware');
 
-router.get('/', auth, permit('transaction', 'read'), validate(getTransactionsSchema, 'query'), getTransactions);
-router.get('/total-amounts', auth, permit('transaction', 'read'), getTotalAmounts);
+router.get(
+    '/',
+    auth,
+    permit('transaction', 'read'),
+    validate(getTransactionsSchema, 'query'),
+    cacheResponse({ prefix: 'transactions:list' }),
+    getTransactions
+);
+router.get(
+    '/total-amounts',
+    auth,
+    permit('transaction', 'read'),
+    cacheResponse({ prefix: 'transactions:total' }),
+    getTotalAmounts
+);
 router.get(
     '/:transactionId',
     auth,
     permit('transaction', 'read'),
     validate(transactionParamsSchema, 'params'),
+    cacheResponse({ prefix: 'transactions:detail' }),
     getTransactionById
 );
 router.patch(

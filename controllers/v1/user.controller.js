@@ -9,12 +9,12 @@ const {
     getTeacherUsers,
     getTeacherUserById,
 } = require('../../services/v1/user.service');
+const cache = require('../../libs/cache');
 
 module.exports = {
     createParentUser: async (req, res, next) => {
         try {
-            let { nisn, studentName, parentName, grade, username, password, phoneNumber } =
-                req.body;
+            let { nisn, studentName, parentName, grade, username, password, phoneNumber } = req.body;
 
             let result = await createParentUser({
                 user: req.user,
@@ -26,6 +26,9 @@ module.exports = {
                 password,
                 phoneNumber,
             });
+
+            await cache.delByPattern('users:parents:*');
+            await cache.delByPattern('students:*');
 
             return createSuccess.created(res, 'Parent user created', result);
         } catch (err) {
@@ -74,6 +77,9 @@ module.exports = {
                 phoneNumber,
             });
 
+            await cache.delByPattern('users:parents:*');
+            await cache.delByPattern('students:list:*');
+
             return createSuccess.ok(res, 'Parent user updated', result);
         } catch (err) {
             next(err);
@@ -86,6 +92,9 @@ module.exports = {
                 id: req.params.userId,
                 user: req.user,
             });
+
+            await cache.delByPattern('users:parents:*');
+            await cache.delByPattern('students:*');
 
             return createSuccess.noContent(res, 'Parent user deleted');
         } catch (err) {
@@ -103,6 +112,9 @@ module.exports = {
                 username,
                 password,
             });
+
+            await cache.delByPattern('users:teachers:*');
+            await cache.delByPattern('students:list:*');
 
             return createSuccess.created(res, 'Teacher user created', result);
         } catch (err) {

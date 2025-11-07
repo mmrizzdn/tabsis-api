@@ -11,9 +11,23 @@ const {
 const { validate } = require('../../middlewares/validator.middleware');
 const { getStudentsSchema, studentIdsSchema } = require('../../validators/v1/student.validator');
 const { permit } = require('../../middlewares/permission.middleware');
+const { cacheResponse } = require('../../middlewares/cache.middleware');
 
-router.get('/', auth, permit('student', 'read'), validate(getStudentsSchema, 'query'), getStudents);
-router.get('/total', auth, permit('student', 'read'), getTotalStudents);
+router.get(
+    '/',
+    auth,
+    permit('student', 'read'),
+    validate(getStudentsSchema, 'query'),
+    cacheResponse({ prefix: 'students:list' }),
+    getStudents
+);
+router.get(
+    '/total',
+    auth,
+    permit('student', 'read'),
+    cacheResponse({ prefix: 'students:total' }),
+    getTotalStudents
+);
 router.patch(
     '/promote-to-next-grade',
     auth,

@@ -5,6 +5,9 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/v1');
 const createSuccess = require('./utils/http-success');
+const winstonLogger = require('./libs/logger');
+const { requestLogger } = require('./middlewares/logger.middleware');
+const { sanitize } = require('./middlewares/sanitize.middleware');
 
 var app = express();
 
@@ -15,7 +18,7 @@ const globalLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 100,
     keyPrefix: 'global',
-    message: 'Too many requests from this IP, please try again later.',
+    message: 'Too many requests from this IP, please try again later',
 });
 
 app.use(globalLimiter);
@@ -23,6 +26,8 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(sanitize);
+app.use(requestLogger);
 
 app.get('/', (req, res) => {
     return createSuccess.ok(res, 'OK');
@@ -46,10 +51,23 @@ app.use(function (err, req, res, next) {
         err.name === 'PrismaClientKnownRequestError' ||
         err.name === 'PrismaClientInitializationError'
     ) {
-        console.error(err);
+        winstonLogger.error('Internal server error', {
+            error: err.message,
+            stack: err.stack,
+            name: err.name,
+            url: req.originalUrl || req.url,
+            method: req.method,
+        });
         err.message = 'Internal server error';
     } else {
-        console.error(err);
+        winstonLogger.error('Error occurred', {
+            error: err.message,
+            stack: err.stack,
+            status: err.status || 500,
+            name: err.name,
+            url: req.originalUrl || req.url,
+            method: req.method,
+        });
     }
 
     res.status(err.status || 500).json({

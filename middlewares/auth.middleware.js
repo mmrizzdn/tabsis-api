@@ -63,9 +63,7 @@ module.exports = {
                 return next(createError(401, 'User is not registered'));
             }
 
-            let permissionsList = user.role.permissions.map(
-                (p) => `${p.permission.resource}:${p.permission.action}`
-            );
+            let permissionsList = user.role.permissions.map((p) => `${p.permission.resource}:${p.permission.action}`);
             let userData = {
                 id: user.id,
                 username: user.username,

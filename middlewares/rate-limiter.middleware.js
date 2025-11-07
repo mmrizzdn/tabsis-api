@@ -1,5 +1,6 @@
 const createError = require('http-errors');
 const redis = require('../libs/redis');
+const logger = require('../libs/logger');
 
 module.exports = {
     rateLimit: (options) => {
@@ -27,12 +28,16 @@ module.exports = {
                 res.setHeader('X-RateLimit-Reset', resetTime);
 
                 if (requests > max) {
-                    return next(createError(429, options.message || 'Too many requests, please try again later.'));
+                    return next(createError(429, options.message || 'Too many requests, please try again later'));
                 }
 
                 next();
             } catch (err) {
-                console.error('Rate limiter error:', err);
+                logger.error('Rate limiter error', {
+                    error: err.message,
+                    stack: err.stack,
+                    ip: req.ip || req.socket.remoteAddress,
+                });
                 next();
             }
         };
