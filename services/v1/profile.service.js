@@ -169,7 +169,11 @@ module.exports = {
 
             await tx.profile.update({
                 where: { id: profile.id },
-                data: { avatarId: result.id },
+                data: {
+                    avatar: {
+                        connect: { id: result.id },
+                    },
+                },
             });
 
             return {
