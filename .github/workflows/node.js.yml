@@ -57,9 +57,14 @@ jobs:
                   nohup ngrok http 3000 --authtoken "\$NGROK_TOKEN" --log=stdout > /tmp/ngrok.log 2>&1 &
                   sleep 3
                   
-                  NGROK_URL=\$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 || echo "")
-                  if [ -n "\$NGROK_URL" ]; then
-                      echo "Ngrok tunnel started: \$NGROK_URL"
+                  TUNNEL_JSON=\$(curl -s http://localhost:4040/api/tunnels 2>/dev/null || echo "")
+                  if [ -n "\$TUNNEL_JSON" ]; then
+                      NGROK_URL=\$(echo "\$TUNNEL_JSON" | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1)
+                      if [ -n "\$NGROK_URL" ]; then
+                          echo "Ngrok tunnel started: \$NGROK_URL"
+                      else
+                          echo "Ngrok started but URL not available yet. Check logs: /tmp/ngrok.log"
+                      fi
                   else
                       echo "Ngrok started but URL not available yet. Check logs: /tmp/ngrok.log"
                   fi
