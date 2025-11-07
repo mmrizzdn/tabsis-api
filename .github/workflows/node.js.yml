@@ -4,50 +4,43 @@
 name: Node.js CI
 
 on:
-  push:
-    branches: ['main']
-  pull_request:
-    branches: ['main']
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
 
 jobs:
-  deploy:
-    environment: development-server
-    runs-on: self-hosted
+    deploy:
+        environment: development-server
+        runs-on: self-hosted
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+            - name: Setup SSH
+              uses: webfactory/ssh-agent@v0.9.0
+              with:
+                  ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-      - name: Deploy to Server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-              set -e
+            - name: Deploy to Server
+              run: |
+                  ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+                      set -e
 
-              export NVM_DIR="$HOME/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+                      if [ ! -d ${{ secrets.APP_DIR }} ]; then
+                          echo "App direuctory does not exist. Cloning repository..."
+                          git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
+                      fi
 
-              # Add GitHub to known_hosts to avoid host key verification errors
-              mkdir -p ~/.ssh
-              ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+                      cd ${{ secrets.APP_DIR }}
 
-              if [ ! -d ${{ secrets.APP_DIR }} ]; then
-                  echo "App direuctory does not exist. Cloning repository..."
-                  git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
-              fi
+                      git fetch --all
+                      git reset --hard origin/main || git reset --hard origin/master
 
-              cd ${{ secrets.APP_DIR }}
+                      npm install
 
-              git fetch --all
-              git reset --hard origin/main || git reset --hard origin/master
-
-              npm install
-
-              pm2 reload all --update-env || pm2 start ecosystem.config.cjs
-              pm2 status
-              pm2 logs --lines 20 --nostream
-          EOF
+                      pm2 reload all --update-env || pm2 start ecosystem.config.cjs
+                      pm2 status
+                      pm2 logs --lines 20 --nostream
+                  EOF
