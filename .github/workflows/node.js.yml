@@ -26,9 +26,15 @@ jobs:
     - name: Deploy to server
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -e
+
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           
+          if [ ! -d ${{ secrets.APP_DIR }} ]; then
+            echo "App directory does not exist. Cloning repository..."
+            git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
+
           cd ${{ secrets.APP_DIR }}
 
           git fetch --all
@@ -36,5 +42,8 @@ jobs:
 
           npm install
 
-          pm2 reload all
+          pm2 reload all --update-env || pm2 start ecosystem.config.cjs
+          pm2 status
+          pm2 logs --lines 20 --nostream
+          
         EOF
