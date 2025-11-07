@@ -144,7 +144,7 @@ const cache = {
         return result;
     },
 
-    DEFAULT_TTL,
+    defaultTtl: 60,
 };
 
 module.exports = cache;

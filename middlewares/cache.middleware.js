@@ -42,7 +42,7 @@ const shouldSkipCache = (req) => {
 };
 
 const cacheResponse =
-    ({ prefix = 'http', ttl = cache.DEFAULT_TTL, keyGenerator, shouldCache } = {}) =>
+    ({ prefix = 'http', ttl = cache.defaultTtl, keyGenerator, shouldCache } = {}) =>
     async (req, res, next) => {
         try {
             if (shouldSkipCache(req)) {

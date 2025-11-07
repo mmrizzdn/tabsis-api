@@ -1,13 +1,16 @@
-var createError = require('http-errors');
 var express = require('express');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var helmet = require('helmet');
+var cors = require('cors');
+var createError = require('http-errors');
 
 var indexRouter = require('./routes/v1');
 const createSuccess = require('./utils/http-success');
 const winstonLogger = require('./libs/logger');
 const { requestLogger } = require('./middlewares/logger.middleware');
 const { sanitize } = require('./middlewares/sanitize.middleware');
+const config = require('./config/index');
 
 var app = express();
 
@@ -22,6 +25,30 @@ const globalLimiter = rateLimit({
 });
 
 app.use(globalLimiter);
+app.use(
+    cors({
+        origin: (origin, cb) => {
+            const allowedOrigins = config.corsOrigin
+                .split(',')
+                .map((o) => o.trim())
+                .filter(Boolean);
+
+            if (!origin || allowedOrigins.includes(origin)) {
+                cb(null, true);
+            } else {
+                cb(createError(403, 'Not allowed by CORS'));
+            }
+        },
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+);
+app.use(
+    helmet({
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+    })
+);
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
