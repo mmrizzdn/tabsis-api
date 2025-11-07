@@ -31,41 +31,34 @@ jobs:
               NGROK_TOKEN="${{ secrets.NGROK_AUTH_TOKEN }}"
 
               if [ ! -d ${{ secrets.APP_DIR }} ]; then
-                  echo "App direuctory does not exist. Cloning repository..."
+                  echo "App directory does not exist. Cloning repository..."
                   git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
               fi
 
               cd ${{ secrets.APP_DIR }}
 
+              echo "Fetching latest code..."
               git fetch --all
-              git reset --hard origin/main || git reset --hard origin/master
+              git reset --hard origin/main
 
+              echo "Installing dependencies..."
               export NVM_DIR="$HOME/.nvm"
               [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-              
-              echo "Node.js version: $(node --version)"
-              echo "npm version: $(npm --version)"
 
               npm install
 
               echo "Running Prisma migrations..."
               npx prisma migrate deploy
 
+              echo "Restarting PM2 processes..."
               pm2 reload all --update-env || pm2 start ecosystem.config.cjs
 
               if [ -n "$NGROK_TOKEN" ]; then
-                  echo "Starting ngrok tunnel..."
+                  echo "Stopping ngrok..."
                   pkill ngrok || true
-
-                  # Get port from secrets or default to 3000
-                  APP_PORT="${{ secrets.APP_PORT }}"
-                  if [ -z "$APP_PORT" ]; then
-                      APP_PORT="3000"
-                  fi
-
-                  # Use explicit host-header to fix "malformed Host header" errors
-                  # This ensures ngrok rewrites Host header to localhost:PORT for all requests
-                  nohup ngrok http "$APP_PORT" --authtoken "$NGROK_TOKEN" --host-header="localhost:$APP_PORT" --log=stdout > /tmp/ngrok.log 2>&1 &
+              
+                  echo "Starting ngrok tunnel..."
+                  nohup ngrok http ${{ secrets.APP_PORT }} --authtoken "$NGROK_TOKEN" --log=stdout > /tmp/ngrok.log 2>&1 &
                   sleep 3
                   
                   NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 || echo "")
