@@ -23,27 +23,9 @@ const {
 } = require('../../controllers/v1/user.controller');
 
 // Parent User Routes
-router.post(
-    '/parents',
-    auth,
-    permit('parent', 'create '),
-    validate(createParentUserSchema, 'body'),
-    createParentUser
-);
-router.get(
-    '/parents',
-    auth,
-    permit('parent', 'read'),
-    validate(getParentUsersSchema, 'query'),
-    getParentUsers
-);
-router.get(
-    '/parents/:userId',
-    auth,
-    permit('parent', 'read'),
-    validate(userParamsSchema, 'params'),
-    getParentUserById
-);
+router.post('/parents', auth, permit('parent', 'create '), validate(createParentUserSchema, 'body'), createParentUser);
+router.get('/parents', auth, permit('parent', 'read'), validate(getParentUsersSchema, 'query'), getParentUsers);
+router.get('/parents/:userId', auth, permit('parent', 'read'), validate(userParamsSchema, 'params'), getParentUserById);
 router.patch(
     '/parents/:userId',
     auth,

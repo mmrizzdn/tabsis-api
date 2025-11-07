@@ -7,8 +7,7 @@ const { normalizePhone } = require('../../utils/normalizer');
 
 module.exports = {
     createParentUser: async (payload) => {
-        let { user, nisn, studentName, parentName, grade, username, password, phoneNumber } =
-            payload;
+        let { user, nisn, studentName, parentName, grade, username, password, phoneNumber } = payload;
 
         return prisma.$transaction(async (tx) => {
             let exist = await tx.student.findUnique({
@@ -387,10 +386,7 @@ module.exports = {
             }
 
             if (teacher.userId) {
-                throw createError(
-                    409,
-                    `Teacher for grade ${grade} already has an account (${teacher.user.username})`
-                );
+                throw createError(409, `Teacher for grade ${grade} already has an account (${teacher.user.username})`);
             }
 
             let user = await tx.user.findUnique({ where: { username } });

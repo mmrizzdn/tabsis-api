@@ -1,12 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
-const {
-    getProfile,
-    updateProfile,
-    updateAvatar,
-    deleteAvatar,
-} = require('../../controllers/v1/profile.controller');
+const { getProfile, updateProfile, updateAvatar, deleteAvatar } = require('../../controllers/v1/profile.controller');
 const { auth } = require('../../middlewares/auth.middleware');
 const { permit } = require('../../middlewares/permission.middleware');
 const { image } = require('../../libs/multer');

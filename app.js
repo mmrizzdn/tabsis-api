@@ -10,6 +10,15 @@ var app = express();
 
 app.set('trust proxy', true);
 
+const { rateLimit } = require('./middlewares/rate-limiter.middleware');
+const globalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    keyPrefix: 'global',
+    message: 'Too many requests from this IP, please try again later.',
+});
+
+app.use(globalLimiter);
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

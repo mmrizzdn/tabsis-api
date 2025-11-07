@@ -5,10 +5,13 @@ module.exports = {
     rateLimit: (options) => {
         return async (req, res, next) => {
             try {
-                let { windowMs, max } = options;
-                let ip = req.ip;
+                let windowMs = options.windowMs || options.windowS || 60 * 1000;
+                let max = options.max || 100;
+                let ip = req.ip || req.socket.remoteAddress || 'unknown';
                 let keyPrefix = options.keyPrefix || 'global';
-                let key = `rate_limit:${keyPrefix}:${ip}`;
+
+                let identifier = req.user?.id ? `user:${req.user.id}` : `ip:${ip}`;
+                let key = `rate_limit:${keyPrefix}:${identifier}`;
 
                 let requests = await redis.incr(key);
 
@@ -23,22 +26,14 @@ module.exports = {
                 res.setHeader('X-RateLimit-Remaining', remaining);
                 res.setHeader('X-RateLimit-Reset', resetTime);
 
-                console.log(
-                    `[${options.keyPrefix || 'general'}] IP ${ip} has made ${requests}/${max} requests.`
-                );
-
                 if (requests > max) {
-                    next(
-                        createError(
-                            429,
-                            'There have been several failed attempts to sign in from this account or IP address. Please wait a while and try again late.'
-                        )
-                    );
+                    return next(createError(429, options.message || 'Too many requests, please try again later.'));
                 }
 
                 next();
             } catch (err) {
-                next(err);
+                console.error('Rate limiter error:', err);
+                next();
             }
         };
     },

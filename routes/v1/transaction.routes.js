@@ -22,13 +22,7 @@ const {
     approveWithdrawal,
 } = require('../../controllers/v1/transaction.controller');
 
-router.get(
-    '/',
-    auth,
-    permit('transaction', 'read'),
-    validate(getTransactionsSchema, 'query'),
-    getTransactions
-);
+router.get('/', auth, permit('transaction', 'read'), validate(getTransactionsSchema, 'query'), getTransactions);
 router.get('/total-amounts', auth, permit('transaction', 'read'), getTotalAmounts);
 router.get(
     '/:transactionId',
@@ -54,20 +48,8 @@ router.delete(
 );
 
 // Deposit and Withdrawal Routes
-router.post(
-    '/deposit',
-    auth,
-    permit('deposit', 'create'),
-    validate(depositSchema, 'body'),
-    deposit
-);
-router.post(
-    '/withdraw',
-    auth,
-    permit('withdrawal', 'create'),
-    validate(withdrawSchema, 'body'),
-    withdraw
-);
+router.post('/deposit', auth, permit('deposit', 'create'), validate(depositSchema, 'body'), deposit);
+router.post('/withdraw', auth, permit('withdrawal', 'create'), validate(withdrawSchema, 'body'), withdraw);
 router.patch(
     '/withdraw/:transactionId',
     auth,
