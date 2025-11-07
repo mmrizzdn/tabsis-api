@@ -57,7 +57,15 @@ jobs:
                   echo "Starting ngrok tunnel..."
                   pkill ngrok || true
 
-                  nohup ngrok http ${{ secrets.APP_PORT }} --authtoken "$NGROK_TOKEN" --host-header=rewrite --log=stdout > /tmp/ngrok.log 2>&1 &
+                  # Get port from secrets or default to 3000
+                  APP_PORT="${{ secrets.APP_PORT }}"
+                  if [ -z "$APP_PORT" ]; then
+                      APP_PORT="3000"
+                  fi
+
+                  # Use explicit host-header to fix "malformed Host header" errors
+                  # This ensures ngrok rewrites Host header to localhost:PORT for all requests
+                  nohup ngrok http "$APP_PORT" --authtoken "$NGROK_TOKEN" --host-header="localhost:$APP_PORT" --log=stdout > /tmp/ngrok.log 2>&1 &
                   sleep 3
                   
                   NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 || echo "")
