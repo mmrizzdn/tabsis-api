@@ -43,28 +43,23 @@ jobs:
               export NVM_DIR="$HOME/.nvm"
               [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
               
-              echo "Node.js version: \$(node --version)"
-              echo "npm version: \$(npm --version)"
+              echo "Node.js version: $(node --version)"
+              echo "npm version: $(npm --version)"
 
               npm install
 
               pm2 reload all --update-env || pm2 start ecosystem.config.cjs
 
-              if [ -n "\$NGROK_TOKEN" ]; then
+              if [ -n "$NGROK_TOKEN" ]; then
                   echo "Starting ngrok tunnel..."
                   pkill ngrok || true
 
-                  nohup ngrok http 3000 --authtoken "\$NGROK_TOKEN" --log=stdout > /tmp/ngrok.log 2>&1 &
+                  nohup ngrok http 3000 --authtoken "$NGROK_TOKEN" --log=stdout > /tmp/ngrok.log 2>&1 &
                   sleep 3
                   
-                  TUNNEL_JSON=\$(curl -s http://localhost:4040/api/tunnels 2>/dev/null || echo "")
-                  if [ -n "\$TUNNEL_JSON" ]; then
-                      NGROK_URL=\$(echo "\$TUNNEL_JSON" | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1)
-                      if [ -n "\$NGROK_URL" ]; then
-                          echo "Ngrok tunnel started: \$NGROK_URL"
-                      else
-                          echo "Ngrok started but URL not available yet. Check logs: /tmp/ngrok.log"
-                      fi
+                  NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 || echo "")
+                  if [ -n "$NGROK_URL" ]; then
+                      echo "Ngrok tunnel started: $NGROK_URL"
                   else
                       echo "Ngrok started but URL not available yet. Check logs: /tmp/ngrok.log"
                   fi
