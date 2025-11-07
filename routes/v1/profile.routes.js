@@ -10,11 +10,12 @@ const {
 const { auth } = require('../../middlewares/auth.middleware');
 const { permit } = require('../../middlewares/permission.middleware');
 const { image } = require('../../libs/multer');
+const { validate } = require('../../middlewares/validator.middleware');
 const { validateFile } = require('../../middlewares/validator.middleware');
-const { updateAvatarSchema } = require('../../validators/v1/profile.validator');
+const { updateProfileSchema, updateAvatarSchema } = require('../../validators/v1/profile.validator');
 
 router.get('/', auth, permit('profile', 'read'), getProfile);
-router.patch('/', auth, permit('profile', 'update'), updateProfile);
+router.patch('/', auth, permit('profile', 'update'), validate(updateProfileSchema, 'body'), updateProfile);
 router.post(
     '/avatar',
     auth,

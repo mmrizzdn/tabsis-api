@@ -1,14 +1,15 @@
-const bcrypt = require('bcrypt');
-const createError = require('http-errors');
-const sharp = require('sharp');
+const bcrypt = require("bcrypt");
+const createError = require("http-errors");
+const sharp = require("sharp");
 
-const prisma = require('../../libs/prisma');
-const { normalizePhone } = require('../../utils/normalizer');
-const { uploadFile, deleteFile } = require('../../libs/imagekit');
+const prisma = require("../../libs/prisma");
+const { normalizePhone } = require("../../utils/normalizer");
+const { uploadFile, deleteFile } = require("../../libs/imagekit");
 
 module.exports = {
     getProfile: async (payload) => {
         let user = payload.user;
+
         let result = await prisma.user.findUnique({
             where: { id: user.id },
             select: {
@@ -38,12 +39,14 @@ module.exports = {
     updateProfile: async (payload) => {
         let { name, username, phoneNumber, password, user } = payload;
 
+        console.log(user);
+
         let exist = await prisma.user.findUnique({
-            where: { username, NOT: { username: user.username } },
+            where: { username: user.username, NOT: { username: user.username } },
         });
 
         if (exist) {
-            throw createError.Conflict('Username already exist');
+            throw createError.Conflict("Username already exist");
         }
 
         let hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
@@ -82,7 +85,7 @@ module.exports = {
 
         let compressedBuffer;
         try {
-            let imgBuffer = Buffer.from(strFile, 'base64');
+            let imgBuffer = Buffer.from(strFile, "base64");
             let img = sharp(imgBuffer).rotate();
             let metadata = await img.metadata();
 
@@ -103,21 +106,21 @@ module.exports = {
                     height: size,
                 })
                 .resize(resizeSize, resizeSize, {
-                    fit: 'fill',
-                    position: 'center',
+                    fit: "fill",
+                    position: "center",
                     withoutEnlargement: false,
                 })
                 .jpeg({ quality: 80 })
                 .toBuffer();
         } catch (e) {
-            throw createError(500, 'Failed to process image');
+            throw createError(500, "Failed to process image");
         }
 
         let timestamp = Date.now();
         let folder = `profiles`;
 
         let avatar = await uploadFile({
-            file: compressedBuffer.toString('base64'),
+            file: compressedBuffer.toString("base64"),
             fileName: `${timestamp}.jpeg`,
             folder,
             useUniqueName: true,
@@ -141,7 +144,7 @@ module.exports = {
             let data = {
                 filename: avatar.name || originalName,
                 url: avatar.url,
-                mimetype: 'image/jpeg',
+                mimetype: "image/jpeg",
                 size: avatar.size,
                 thumbnailUrl: avatar.thumbnailUrl || null,
                 imagekitId: avatar.fileId,
@@ -188,7 +191,7 @@ module.exports = {
             select: { avatarId: true, avatar: { select: { imagekitId: true } } },
         });
 
-        if (!profile.avatarId) throw createError(404, 'Avatar not found');
+        if (!profile.avatarId) throw createError(404, "Avatar not found");
 
         await deleteFile(profile.avatar.imagekitId);
 

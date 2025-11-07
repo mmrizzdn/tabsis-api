@@ -10,9 +10,7 @@ module.exports = {
                 page: z.coerce.number().int().positive().min(1).catch(1),
                 limit: z.coerce.number().int().positive().min(1).max(100).catch(10),
                 search: z.string().trim().max(100).optional(),
-                sort: z
-                    .enum(['studentName', 'grade', 'amount', 'balance', 'date', 'updatedAt'])
-                    .catch('updatedAt'),
+                sort: z.enum(['studentName', 'grade', 'amount', 'balance', 'date', 'updatedAt']).catch('updatedAt'),
                 order: z.enum(['asc', 'desc']).catch('desc'),
                 dayRange: z.coerce.number().int().positive().min(1).max(30).optional(),
                 grade: z.coerce.number().int().positive().min(1).max(6).optional(),

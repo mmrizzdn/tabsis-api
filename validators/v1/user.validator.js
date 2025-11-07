@@ -48,17 +48,13 @@ module.exports = {
                         message: 'Grade is required',
                         path: ['grade'],
                     });
-                }
-
-                if (!isSuperadmin && data.grade) {
+                } else if (!isSuperadmin && data.grade) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
                         message: 'Only superadmin can add parent user with grade',
                         path: ['grade'],
                     });
-                }
-
-                if (data.password !== data.confirmPassword) {
+                } else if (data.password !== data.confirmPassword) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
                         message: 'Passwords do not match',

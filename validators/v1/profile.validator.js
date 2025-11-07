@@ -20,14 +20,14 @@ module.exports = {
                 confirmPassword: z.string().trim().optional(),
             })
             .superRefine((data, ctx) => {
+                console.log(data);
                 if (data.password && !data.confirmPassword) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
                         message: 'Confirm password is required',
                         path: ['confirmPassword'],
                     });
-                }
-                if (data.password !== data.confirmPassword) {
+                } else if (data.password !== data.confirmPassword) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
                         message: 'Passwords do not match',
