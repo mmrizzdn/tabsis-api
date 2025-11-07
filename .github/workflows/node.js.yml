@@ -25,8 +25,10 @@ jobs:
 
       - name: Deploy to Server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} bash -s << EOF
               set -e
+              
+              NGROK_TOKEN="${{ secrets.NGROK_AUTH_TOKEN }}"
 
               if [ ! -d ${{ secrets.APP_DIR }} ]; then
                   echo "App direuctory does not exist. Cloning repository..."
@@ -43,4 +45,19 @@ jobs:
               pm2 reload all --update-env || pm2 start ecosystem.config.cjs
               pm2 status
               pm2 logs --lines 20 --nostream
+
+              if [ -n "\$NGROK_TOKEN" ]; then
+                  echo "Starting ngrok tunnel..."
+                  pkill ngrok || true
+
+                  nohup ngrok http 3000 --authtoken "\$NGROK_TOKEN" --log=stdout > /tmp/ngrok.log 2>&1 &
+                  sleep 3
+                  
+                  NGROK_URL=\$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 || echo "")
+                  if [ -n "\$NGROK_URL" ]; then
+                      echo "Ngrok tunnel started: \$NGROK_URL"
+                  else
+                      echo "Ngrok started but URL not available yet. Check logs: /tmp/ngrok.log"
+                  fi
+              fi
           EOF
