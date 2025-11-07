@@ -1,10 +1,9 @@
+const createError = require('http-errors');
+
 const redis = require('./redis');
 const logger = require('./logger');
 
-const DEFAULT_TTL = Number.parseInt(process.env.CACHE_TTL, 10) || 60;
-const NAMESPACE = 'cache';
-
-const withNamespace = (key) => `${NAMESPACE}:${key}`;
+const withNamespace = (key) => `cache:${key}`;
 
 const safeParse = (value) => {
     try {
@@ -47,7 +46,7 @@ const cache = {
         }
     },
 
-    async set(key, value, ttl = DEFAULT_TTL) {
+    async set(key, value, ttl = 60) {
         if (!key) return;
         if (ttl === 0) return;
 
@@ -132,7 +131,7 @@ const cache = {
 
     async wrap(key, ttl, fn) {
         if (!key || typeof fn !== 'function') {
-            throw new Error('cache.wrap requires a key and a function');
+            throw createError(500, 'cache.wrap requires a key and a function');
         }
 
         const cached = await this.get(key);
