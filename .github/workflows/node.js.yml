@@ -40,6 +40,12 @@ jobs:
               git fetch --all
               git reset --hard origin/main || git reset --hard origin/master
 
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              
+              echo "Node.js version: \$(node --version)"
+              echo "npm version: \$(npm --version)"
+
               npm install
 
               pm2 reload all --update-env || pm2 start ecosystem.config.cjs
