@@ -18,30 +18,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to Server
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            set -e
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+              set -e
 
-            if [ ! -d ${{ secrets.APP_DIR }} ]; then
-              echo "App direuctory does not exist. Cloning repository..."
-              git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
-            fi
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-            cd ${{ secrets.APP_DIR }}
+              # Add GitHub to known_hosts to avoid host key verification errors
+              mkdir -p ~/.ssh
+              ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null || true
 
-            git fetch --all
-            git reset --hard origin/master
+              if [ ! -d ${{ secrets.APP_DIR }} ]; then
+                  echo "App direuctory does not exist. Cloning repository..."
+                  git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
+              fi
 
-            npm install
+              cd ${{ secrets.APP_DIR }}
 
-            pm2 reload all --update-env || pm2 start ecosystem.config.cjs
-            pm2 status
-            pm2 logs --lines 20 --nostream
+              git fetch --all
+              git reset --hard origin/main || git reset --hard origin/master
+
+              npm install
+
+              pm2 reload all --update-env || pm2 start ecosystem.config.cjs
+              pm2 status
+              pm2 logs --lines 20 --nostream
+          EOF
