@@ -28,11 +28,7 @@ app.use(globalLimiter);
 app.use(
     cors({
         origin: (origin, cb) => {
-            const allowedOrigins = config.corsOrigin
-                .split(',')
-                .map((o) => o.trim())
-                .filter(Boolean);
-
+            const allowedOrigins = config.corsOrigin.split(',').map((o) => o.trim());
             if (!origin || allowedOrigins.includes(origin)) {
                 cb(null, true);
             } else {
@@ -40,8 +36,8 @@ app.use(
             }
         },
         credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        methods: ['GET,HEAD,PUT,PATCH,POST,DELETE'],
+        allowedHeaders: ['Content-Type, Authorization'],
     })
 );
 app.use(
