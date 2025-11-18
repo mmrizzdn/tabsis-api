@@ -6,3 +6,4 @@ prisma/seed.js
 logs/
 *.log
 
+Tabsis.postman_collection.json
