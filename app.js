@@ -7,8 +7,7 @@ var createError = require('http-errors');
 
 var indexRouter = require('./routes/v1');
 const createSuccess = require('./utils/http-success');
-const winstonLogger = require('./libs/logger');
-const { requestLogger } = require('./middlewares/logger.middleware');
+const { reqLogger, errLogger } = require('./middlewares/logger.middleware');
 const { sanitize } = require('./middlewares/sanitize.middleware');
 const config = require('./config/index');
 
@@ -50,23 +49,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(sanitize);
-app.use(requestLogger);
+app.use(reqLogger);
 
 app.get('/', (req, res) => {
     return createSuccess.ok(res, 'OK');
 });
 app.use('/api/v1', indexRouter);
 
-// catch 404 and forward to error handler
+// Catch 404 and forward to error handler
 app.use(function (req, res, next) {
     next(createError(404));
 });
 
-// error handler
+// Error handler
 app.use(function (err, req, res, next) {
-    // set locals, only providing error in development
+    // Set locals, only providing error in development
     res.locals.message = err.message;
     res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+    errLogger(err, req);
 
     if (
         err.name === 'PrismaClientValidationError' ||
@@ -74,23 +75,7 @@ app.use(function (err, req, res, next) {
         err.name === 'PrismaClientKnownRequestError' ||
         err.name === 'PrismaClientInitializationError'
     ) {
-        winstonLogger.error('Internal server error', {
-            error: err.message,
-            stack: err.stack,
-            name: err.name,
-            url: req.originalUrl || req.url,
-            method: req.method,
-        });
         err.message = 'Internal server error';
-    } else {
-        winstonLogger.error('Error occurred', {
-            error: err.message,
-            stack: err.stack,
-            status: err.status || 500,
-            name: err.name,
-            url: req.originalUrl || req.url,
-            method: req.method,
-        });
     }
 
     res.status(err.status || 500).json({
