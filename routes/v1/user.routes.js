@@ -24,7 +24,7 @@ const {
 const { cacheResponse } = require('../../middlewares/cache.middleware');
 
 // Parent User Routes
-router.post('/parents', auth, permit('parent', 'create '), validate(createParentUserSchema, 'body'), createParentUser);
+router.post('/parents', auth, permit('parent', 'create'), validate(createParentUserSchema, 'body'), createParentUser);
 router.get(
     '/parents',
     auth,
