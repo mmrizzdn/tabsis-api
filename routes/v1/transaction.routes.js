@@ -10,6 +10,7 @@ const {
     withdrawSchema,
     transactionParamsSchema,
     updateTransactionSchema,
+    getChartDataSchema,
 } = require('../../validators/v1/transaction.validator');
 const {
     deposit,
@@ -20,6 +21,7 @@ const {
     deleteTransaction,
     updateTransaction,
     approveWithdrawal,
+    getChartData,
 } = require('../../controllers/v1/transaction.controller');
 const { cacheResponse } = require('../../middlewares/cache.middleware');
 
@@ -37,6 +39,14 @@ router.get(
     permit('transaction', 'read'),
     cacheResponse({ prefix: 'transactions:total' }),
     getTotalAmounts
+);
+router.get(
+    '/chart',
+    auth,
+    permit('transaction', 'read'),
+    validate(getChartDataSchema, 'query'),
+    cacheResponse({ prefix: 'transactions:chart' }),
+    getChartData
 );
 router.get(
     '/:transactionId',

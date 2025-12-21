@@ -62,4 +62,38 @@ module.exports = {
                     });
                 }
             }),
+
+    getChartDataSchema: (req) =>
+        z
+            .object({
+                type: z.enum(['deposit', 'withdrawal', 'balance']),
+                groupBy: z.enum(['day', 'month']).catch('day'),
+                startDate: z.string().trim().date().optional(),
+                endDate: z.string().trim().date().optional(),
+                grade: z.coerce.number().int().positive().min(1).max(6).optional(),
+            })
+            .superRefine((data, ctx) => {
+                let isSuperadmin = req.user?.role === 'Superadmin';
+
+                if (!isSuperadmin && data.grade) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Only superadmin can filter by grade',
+                        path: ['grade'],
+                    });
+                }
+
+                if (data.startDate && data.endDate) {
+                    let start = new Date(data.startDate);
+                    let end = new Date(data.endDate);
+
+                    if (start > end) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Start date must be before or equal to end date',
+                            path: ['startDate'],
+                        });
+                    }
+                }
+            }),
 };

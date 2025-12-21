@@ -7,6 +7,7 @@ const {
     deleteTransaction,
     updateTransaction,
     approveWithdrawal,
+    getChartData,
 } = require('../../services/v1/transaction.service');
 const createSuccess = require('../../utils/http-success');
 const cache = require('../../libs/cache');
@@ -137,6 +138,29 @@ module.exports = {
             await cache.delByPattern('students:list:*');
 
             return createSuccess.ok(res, 'Withdrawal approved', result);
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    getChartData: async (req, res, next) => {
+        try {
+            let { type, groupBy, startDate, endDate, grade } = req.query;
+
+            let result = await getChartData({
+                type,
+                groupBy,
+                startDate,
+                endDate,
+                grade,
+                user: req.user,
+            });
+
+            if (result.length === 0) {
+                return createSuccess.noContent(res, 'No chart data available');
+            }
+
+            return createSuccess.ok(res, 'OK', result);
         } catch (err) {
             next(err);
         }

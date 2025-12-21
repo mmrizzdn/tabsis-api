@@ -547,4 +547,100 @@ module.exports = {
             };
         });
     },
+
+    getChartData: async (payload) => {
+        let { type, groupBy, startDate, endDate, grade, user } = payload;
+
+        return await prisma.$transaction(async (tx) => {
+            let conditions = { AND: [{ status: TransactionStatus.SUCCESS }] };
+
+            if (user.role === 'Teacher') {
+                let currUser = await tx.user.findUnique({
+                    where: { id: user.id },
+                    select: { teacher: { select: { grade: true } } },
+                });
+
+                conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+            } else if (grade && user.role === 'Superadmin') {
+                conditions.AND.push({ student: { grade } });
+            } else if (user.role === 'Parent') {
+                conditions.AND.push({ student: { parentId: user.id } });
+            }
+
+            if (startDate && endDate) {
+                conditions.AND.push({
+                    date: {
+                        gte: new Date(startDate),
+                        lte: new Date(endDate),
+                    },
+                });
+            }
+
+            if (type === 'deposit' || type === 'withdrawal') {
+                conditions.AND.push({
+                    type: type === 'deposit' ? TransactionType.DEPOSIT : TransactionType.WITHDRAWAL,
+                });
+            }
+
+            let transactions = await tx.transaction.findMany({
+                where: conditions,
+                select: {
+                    date: true,
+                    amount: true,
+                    type: true,
+                },
+                orderBy: { date: 'asc' },
+            });
+
+            let chartData = {};
+
+            if (type === 'balance') {
+                let cumulativeBalance = 0;
+
+                transactions.forEach((transaction) => {
+                    let dateKey;
+                    if (groupBy === 'month') {
+                        let date = new Date(transaction.date);
+                        dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    } else {
+                        let date = new Date(transaction.date);
+                        dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    }
+
+                    if (transaction.type === TransactionType.DEPOSIT) {
+                        cumulativeBalance += Number(transaction.amount);
+                    } else if (transaction.type === TransactionType.WITHDRAWAL) {
+                        cumulativeBalance -= Number(transaction.amount);
+                    }
+
+                    chartData[dateKey] = {
+                        period: dateKey,
+                        value: cumulativeBalance,
+                    };
+                });
+            } else {
+                transactions.forEach((transaction) => {
+                    let dateKey;
+                    if (groupBy === 'month') {
+                        let date = new Date(transaction.date);
+                        dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    } else {
+                        let date = new Date(transaction.date);
+                        dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    }
+
+                    if (!chartData[dateKey]) {
+                        chartData[dateKey] = {
+                            period: dateKey,
+                            value: 0,
+                        };
+                    }
+
+                    chartData[dateKey].value += Number(transaction.amount);
+                });
+            }
+
+            return Object.values(chartData);
+        });
+    },
 };
