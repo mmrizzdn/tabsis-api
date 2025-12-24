@@ -11,6 +11,7 @@ const {
     transactionParamsSchema,
     updateTransactionSchema,
     getChartDataSchema,
+    approveWithdrawalSchema,
 } = require('../../validators/v1/transaction.validator');
 const {
     deposit,
@@ -75,11 +76,11 @@ router.delete(
 // Deposit and Withdrawal Routes
 router.post('/deposit', auth, permit('deposit', 'create'), validate(depositSchema, 'body'), deposit);
 router.post('/withdraw', auth, permit('withdrawal', 'create'), validate(withdrawSchema, 'body'), withdraw);
-router.patch(
-    '/withdraw/:transactionId',
+router.post(
+    '/withdraw/approve',
     auth,
     permit('withdrawal', 'approve'),
-    validate(transactionParamsSchema, 'params'),
+    validate(approveWithdrawalSchema, 'body'),
     approveWithdrawal
 );
 

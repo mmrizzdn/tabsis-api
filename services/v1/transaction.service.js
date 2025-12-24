@@ -5,7 +5,7 @@ const { TransactionType, TransactionStatus } = require('@prisma/client');
 
 module.exports = {
     getTransactions: async (payload) => {
-        let { page, limit, search, sort, order, dayRange, grade, user } = payload;
+        let { page, limit, search, sort, order, dayRange, grade, type, status, user } = payload;
 
         let offsetNumber = (page - 1) * limit;
 
@@ -67,6 +67,36 @@ module.exports = {
                 });
 
                 filter.dayRange = dayRange;
+            }
+
+            console.log('type:', type)
+
+            if (type) {
+                conditions.AND.push({
+                    type: type === 'deposit' ? TransactionType.DEPOSIT : TransactionType.WITHDRAWAL,
+                });
+                filter.type = type;
+            }
+
+            if (status) {
+                if (type === 'deposit') {
+                    conditions.AND.push({ status: TransactionStatus.SUCCESS });
+                    filter.status = 'success';
+                } else {
+                    let statusEnum;
+                    if (status === 'pending') {
+                        statusEnum = TransactionStatus.PENDING;
+                    } else if (status === 'success') {
+                        statusEnum = TransactionStatus.SUCCESS;
+                    } else if (status === 'failed') {
+                        statusEnum = TransactionStatus.FAILED;
+                    }
+                    conditions.AND.push({ status: statusEnum });
+                    filter.status = status;
+                }
+            } else if (type === 'deposit') {
+                conditions.AND.push({ status: TransactionStatus.SUCCESS });
+                filter.status = 'success';
             }
 
             let result = await tx.transaction.findMany({
@@ -288,6 +318,8 @@ module.exports = {
 
         return await prisma.$transaction(async (tx) => {
             let conditions = { AND: [] };
+            let studentConditions = { AND: [] };
+
             if (user.role === 'Teacher') {
                 let currUser = await tx.user.findUnique({
                     where: { id: user.id },
@@ -295,6 +327,7 @@ module.exports = {
                 });
 
                 conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+                studentConditions.AND.push({ grade: currUser.teacher.grade });
             }
             let totalDeposits = await tx.transaction.aggregate({
                 _sum: {
@@ -306,13 +339,13 @@ module.exports = {
                 _sum: {
                     amount: true,
                 },
-                where: { ...conditions, type: TransactionType.WITHDRAWAL },
+                where: { ...conditions, type: TransactionType.WITHDRAWAL, status: TransactionStatus.SUCCESS },
             });
             let totalBalances = await tx.student.aggregate({
                 _sum: {
                     balance: true,
                 },
-                where: { ...conditions.student },
+                where: studentConditions,
             });
 
             return {
@@ -472,15 +505,26 @@ module.exports = {
     },
 
     approveWithdrawal: async (payload) => {
-        let { id, user } = payload;
+        let { ids, user } = payload;
 
         return await prisma.$transaction(async (tx) => {
-            let transaction = await tx.transaction.findFirst({
-                where: {
-                    id: id,
-                    type: TransactionType.WITHDRAWAL,
-                    status: TransactionStatus.PENDING,
-                },
+            let conditions = {
+                id: { in: ids },
+                type: TransactionType.WITHDRAWAL,
+                status: TransactionStatus.PENDING,
+            };
+
+            if (user.role === 'Teacher') {
+                let currUser = await tx.user.findUnique({
+                    where: { id: user.id },
+                    select: { teacher: { select: { grade: true } } },
+                });
+
+                conditions.student = { grade: currUser.teacher.grade };
+            }
+
+            let transactions = await tx.transaction.findMany({
+                where: conditions,
                 select: {
                     id: true,
                     amount: true,
@@ -488,63 +532,73 @@ module.exports = {
                     type: true,
                     status: true,
                     details: true,
-                    student: { select: { id: true } },
+                    student: { select: { id: true, balance: true } },
                     withdrawalReason: { select: { reason: true } },
                     updatedAt: true,
                 },
             });
 
-            if (!transaction) {
-                throw createError(404, 'Transaction not found');
+            if (transactions.length === 0) {
+                throw createError(404, 'No transactions found to approve');
             }
 
-            let updatedStudent = await tx.student.update({
-                where: { id: transaction.student.id },
-                data: { balance: { decrement: transaction.amount } },
-                select: { balance: true },
-            });
+            if (transactions.length !== ids.length) {
+                throw createError(400, `Only ${transactions.length} out of ${ids.length} transactions are eligible for approval`);
+            }
 
             let approver = await tx.user.findUnique({
                 where: { id: user.id },
                 select: { profile: { select: { name: true } } },
             });
 
-            let result = await tx.transaction.update({
-                where: { id: id },
-                data: {
-                    status: TransactionStatus.SUCCESS,
-                    approvedBy: approver.profile.name,
-                    approvedAt: new Date(),
-                    details: { ...transaction.details, balance: updatedStudent.balance },
-                    approver: { connect: { id: user.id } },
-                },
-                select: {
-                    id: true,
-                    amount: true,
-                    date: true,
-                    status: true,
-                    type: true,
-                    details: true,
-                    withdrawalReason: { select: { reason: true } },
-                    approvedBy: true,
-                    approvedAt: true,
-                    updatedAt: true,
-                },
-            });
+            let results = [];
 
-            return {
-                id: result.id,
-                name: result.details.studentName,
-                amount: result.amount,
-                balance: updatedStudent.balance,
-                type: result.type,
-                date: result.date,
-                status: result.status,
-                approvedBy: result.approvedBy,
-                approvedAt: result.approvedAt,
-                withdrawalReason: result.withdrawalReason.reason,
-                updatedAt: result.updatedAt,
-            };
+            for (let transaction of transactions) {
+                let updatedStudent = await tx.student.update({
+                    where: { id: transaction.student.id },
+                    data: { balance: { decrement: transaction.amount } },
+                    select: { balance: true },
+                });
+
+                let result = await tx.transaction.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status: TransactionStatus.SUCCESS,
+                        approvedBy: approver.profile.name,
+                        approvedAt: new Date(),
+                        details: { ...transaction.details, balance: updatedStudent.balance },
+                        approver: { connect: { id: user.id } },
+                    },
+                    select: {
+                        id: true,
+                        amount: true,
+                        date: true,
+                        status: true,
+                        type: true,
+                        details: true,
+                        withdrawalReason: { select: { reason: true } },
+                        approvedBy: true,
+                        approvedAt: true,
+                        updatedAt: true,
+                    },
+                });
+
+                results.push({
+                    id: result.id,
+                    name: result.details.studentName,
+                    amount: result.amount,
+                    balance: updatedStudent.balance,
+                    type: result.type,
+                    date: result.date,
+                    status: result.status,
+                    approvedBy: result.approvedBy,
+                    approvedAt: result.approvedAt,
+                    withdrawalReason: result.withdrawalReason.reason,
+                    updatedAt: result.updatedAt,
+                });
+            }
+
+            return results;
         });
     },
 

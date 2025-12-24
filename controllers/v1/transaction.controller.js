@@ -15,7 +15,7 @@ const cache = require('../../libs/cache');
 module.exports = {
     getTransactions: async (req, res, next) => {
         try {
-            let { page, limit, search, sort, order, dayRange, grade } = req.query;
+            let { page, limit, search, sort, order, dayRange, grade, type, status } = req.query;
             let user = req.user;
 
             let result = await getTransactions({
@@ -26,6 +26,8 @@ module.exports = {
                 order,
                 dayRange,
                 grade,
+                type,
+                status,
                 user,
             });
 
@@ -130,14 +132,14 @@ module.exports = {
     approveWithdrawal: async (req, res, next) => {
         try {
             let result = await approveWithdrawal({
-                id: req.params.transactionId,
+                ids: req.body.transactionIds,
                 user: req.user,
             });
 
             await cache.delByPattern('transactions:*');
             await cache.delByPattern('students:list:*');
 
-            return createSuccess.ok(res, 'Withdrawal approved', result);
+            return createSuccess.ok(res, `${result.length} withdrawal(s) approved`, result);
         } catch (err) {
             next(err);
         }

@@ -14,6 +14,8 @@ module.exports = {
                 order: z.enum(['asc', 'desc']).catch('desc'),
                 dayRange: z.coerce.number().int().positive().min(1).max(30).optional(),
                 grade: z.coerce.number().int().positive().min(1).max(6).optional(),
+                type: z.enum(['deposit', 'withdrawal']).optional(),
+                status: z.enum(['pending', 'success', 'failed']).optional(),
             })
             .superRefine((data, ctx) => {
                 let isSuperadmin = req.user?.role === 'Superadmin';
@@ -23,6 +25,14 @@ module.exports = {
                         code: z.ZodIssueCode.custom,
                         message: 'Only superadmin can filter by grade',
                         path: ['grade'],
+                    });
+                }
+
+                if (data.type === 'deposit' && data.status && data.status !== 'success') {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Deposit transactions can only have success status',
+                        path: ['status'],
                     });
                 }
             }),
@@ -96,4 +106,9 @@ module.exports = {
                     }
                 }
             }),
+
+    approveWithdrawalSchema: () =>
+        z.object({
+            transactionIds: z.array(z.string().trim().uuid()).min(1).max(50),
+        }),
 };
