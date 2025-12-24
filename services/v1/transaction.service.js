@@ -328,6 +328,9 @@ module.exports = {
 
                 conditions.AND.push({ student: { grade: currUser.teacher.grade } });
                 studentConditions.AND.push({ grade: currUser.teacher.grade });
+            } else if (user.role === 'Parent') {
+                conditions.AND.push({ student: { parentId: user.id } });
+                studentConditions.AND.push({ parentId: user.id });
             }
             let totalDeposits = await tx.transaction.aggregate({
                 _sum: {
@@ -645,6 +648,12 @@ module.exports = {
                 },
                 orderBy: { date: 'asc' },
             });
+
+            console.log('getChartData conditions:', JSON.stringify(conditions, null, 2));
+            console.log('getChartData user role:', user.role);
+            console.log('getChartData user id:', user.id);
+            console.log('getChartData transactions count:', transactions.length);
+
 
             let chartData = {};
 
