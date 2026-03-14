@@ -9,7 +9,6 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_ENV=production
       - REDIS_HOST=redis
       - DATABASE_URL=postgresql://${POSTGRES_USER:-tabsis}:${POSTGRES_PASSWORD:-tabsis}@postgres:5432/${POSTGRES_DB:-tabsis}?schema=public
     depends_on:
