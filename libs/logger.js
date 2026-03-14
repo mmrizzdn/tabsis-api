@@ -49,13 +49,12 @@ const logger = winston.createLogger({
     ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-    logger.add(
-        new winston.transports.Console({
-            format: consoleFormat,
-        })
-    );
-}
+const isProduction = process.env.NODE_ENV === 'production';
+logger.add(
+    new winston.transports.Console({
+        format: isProduction ? winston.format.json() : consoleFormat,
+    })
+);
 
 module.exports = logger;
 

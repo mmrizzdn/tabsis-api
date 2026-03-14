@@ -1,0 +1,73 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tabsis-api
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-tabsis}:${POSTGRES_PASSWORD:-tabsis}@postgres:5432/${POSTGRES_DB:-tabsis}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tabsis-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: tabsis-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-tabsis}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tabsis}
+      - POSTGRES_DB=${POSTGRES_DB:-tabsis}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tabsis} -d ${POSTGRES_DB:-tabsis}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tabsis-network
+
+  redis:
+    image: redis:8.0.6-alpine
+    container_name: tabsis-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tabsis-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+
+networks:
+  tabsis-network:
+    driver: bridge
