@@ -1,148 +1,148 @@
 const createSuccess = require('../../utils/http-success');
 const {
-    createParentUser,
-    getParentUsers,
-    updateParentUser,
-    deleteParentUser,
-    getParentUserById,
-    createTeacherUser,
-    getTeacherUsers,
-    getTeacherUserById,
+  createParentUser,
+  getParentUsers,
+  updateParentUser,
+  deleteParentUser,
+  getParentUserById,
+  createTeacherUser,
+  getTeacherUsers,
+  getTeacherUserById,
 } = require('../../services/v1/user.service');
 const cache = require('../../libs/cache');
 
 module.exports = {
-    createParentUser: async (req, res, next) => {
-        try {
-            let { nisn, studentName, parentName, grade, username, password, phoneNumber } = req.body;
+  createParentUser: async (req, res, next) => {
+    try {
+      let { nisn, studentName, parentName, grade, username, password, phoneNumber } = req.body;
 
-            let result = await createParentUser({
-                user: req.user,
-                nisn,
-                studentName,
-                parentName,
-                grade,
-                username,
-                password,
-                phoneNumber,
-            });
+      let result = await createParentUser({
+        user: req.user,
+        nisn,
+        studentName,
+        parentName,
+        grade,
+        username,
+        password,
+        phoneNumber,
+      });
 
-            await cache.delByPattern('users:parents:*');
-            await cache.delByPattern('students:*');
+      await cache.delByPattern('users:parents:*');
+      await cache.delByPattern('students:*');
 
-            return createSuccess.created(res, 'Parent user created', result);
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.created(res, 'Parent user created', result);
+    } catch (err) {
+      next(err);
+    }
+  },
 
-    getParentUsers: async (req, res, next) => {
-        try {
-            let { page, limit, search, sort, order } = req.query;
-            let user = req.user;
+  getParentUsers: async (req, res, next) => {
+    try {
+      let { page, limit, search, sort, order } = req.query;
+      let user = req.user;
 
-            let result = await getParentUsers({ user, page, limit, search, sort, order });
+      let result = await getParentUsers({ user, page, limit, search, sort, order });
 
-            if (result.data.length === 0) {
-                return createSuccess.noContent(res, 'No parent user data', result.meta);
-            }
+      if (result.data.length === 0) {
+        return createSuccess.noContent(res, 'No parent user data', result.meta);
+      }
 
-            return createSuccess.ok(res, 'OK', result.data, result.meta);
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.ok(res, 'OK', result.data, result.meta);
+    } catch (err) {
+      next(err);
+    }
+  },
 
-    getParentUserById: async (req, res, next) => {
-        try {
-            let result = await getParentUserById({ id: req.params.userId, user: req.user });
+  getParentUserById: async (req, res, next) => {
+    try {
+      let result = await getParentUserById({ id: req.params.userId, user: req.user });
 
-            return createSuccess.ok(res, 'OK', result);
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.ok(res, 'OK', result);
+    } catch (err) {
+      next(err);
+    }
+  },
 
-    updateParentUser: async (req, res, next) => {
-        try {
-            let { nisn, studentName, parentName, username, phoneNumber } = req.body;
+  updateParentUser: async (req, res, next) => {
+    try {
+      let { nisn, studentName, parentName, username, phoneNumber } = req.body;
 
-            let result = await updateParentUser({
-                id: req.params.userId,
-                user: req.user,
-                nisn,
-                studentName,
-                parentName,
-                username,
-                phoneNumber,
-            });
+      let result = await updateParentUser({
+        id: req.params.userId,
+        user: req.user,
+        nisn,
+        studentName,
+        parentName,
+        username,
+        phoneNumber,
+      });
 
-            await cache.delByPattern('users:parents:*');
-            await cache.delByPattern('students:list:*');
+      await cache.delByPattern('users:parents:*');
+      await cache.delByPattern('students:list:*');
 
-            return createSuccess.ok(res, 'Parent user updated', result);
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.ok(res, 'Parent user updated', result);
+    } catch (err) {
+      next(err);
+    }
+  },
 
-    deleteParentUser: async (req, res, next) => {
-        try {
-            await deleteParentUser({
-                id: req.params.userId,
-                user: req.user,
-            });
+  deleteParentUser: async (req, res, next) => {
+    try {
+      await deleteParentUser({
+        id: req.params.userId,
+        user: req.user,
+      });
 
-            await cache.delByPattern('users:parents:*');
-            await cache.delByPattern('students:*');
+      await cache.delByPattern('users:parents:*');
+      await cache.delByPattern('students:*');
 
-            return createSuccess.noContent(res, 'Parent user deleted');
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.noContent(res, 'Parent user deleted');
+    } catch (err) {
+      next(err);
+    }
+  },
 
-    createTeacherUser: async (req, res, next) => {
-        try {
-            let { name, grade, username, password } = req.body;
+  createTeacherUser: async (req, res, next) => {
+    try {
+      let { name, grade, username, password } = req.body;
 
-            let result = await createTeacherUser({
-                name,
-                grade,
-                username,
-                password,
-            });
+      let result = await createTeacherUser({
+        name,
+        grade,
+        username,
+        password,
+      });
 
-            await cache.delByPattern('users:teachers:*');
-            await cache.delByPattern('students:list:*');
+      await cache.delByPattern('users:teachers:*');
+      await cache.delByPattern('students:list:*');
 
-            return createSuccess.created(res, 'Teacher user created', result);
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.created(res, 'Teacher user created', result);
+    } catch (err) {
+      next(err);
+    }
+  },
 
-    getTeacherUsers: async (req, res, next) => {
-        try {
-            let result = await getTeacherUsers();
+  getTeacherUsers: async (req, res, next) => {
+    try {
+      let result = await getTeacherUsers();
 
-            if (result.data.length === 0) {
-                return createSuccess.noContent(res, 'No teacher user data', result.meta);
-            }
+      if (result.data.length === 0) {
+        return createSuccess.noContent(res, 'No teacher user data', result.meta);
+      }
 
-            return createSuccess.ok(res, 'OK', result.data, result.meta);
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.ok(res, 'OK', result.data, result.meta);
+    } catch (err) {
+      next(err);
+    }
+  },
 
-    getTeacherUserById: async (req, res, next) => {
-        try {
-            let result = await getTeacherUserById({ id: req.params.userId });
+  getTeacherUserById: async (req, res, next) => {
+    try {
+      let result = await getTeacherUserById({ id: req.params.userId });
 
-            return createSuccess.ok(res, 'OK', result);
-        } catch (err) {
-            next(err);
-        }
-    },
+      return createSuccess.ok(res, 'OK', result);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

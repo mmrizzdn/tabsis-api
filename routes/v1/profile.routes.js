@@ -13,12 +13,12 @@ const { cacheResponse } = require('../../middlewares/cache.middleware');
 router.get('/', auth, permit('profile', 'read'), cacheResponse({ prefix: 'profile' }), getProfile);
 router.patch('/', auth, permit('profile', 'update'), validate(updateProfileSchema, 'body'), updateProfile);
 router.post(
-    '/avatar',
-    auth,
-    permit('profile', 'update'),
-    image.single('avatar'),
-    validateFile(updateAvatarSchema),
-    updateAvatar
+  '/avatar',
+  auth,
+  permit('profile', 'update'),
+  image.single('avatar'),
+  validateFile(updateAvatarSchema),
+  updateAvatar,
 );
 router.delete('/avatar', auth, permit('profile', 'update'), deleteAvatar);
 

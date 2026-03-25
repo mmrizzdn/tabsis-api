@@ -5,83 +5,83 @@ const { auth } = require('../../middlewares/auth.middleware');
 const { permit } = require('../../middlewares/permission.middleware');
 const { validate } = require('../../middlewares/validator.middleware');
 const {
-    depositSchema,
-    getTransactionsSchema,
-    withdrawSchema,
-    transactionParamsSchema,
-    updateTransactionSchema,
-    getChartDataSchema,
-    approveWithdrawalSchema,
+  depositSchema,
+  getTransactionsSchema,
+  withdrawSchema,
+  transactionParamsSchema,
+  updateTransactionSchema,
+  getChartDataSchema,
+  approveWithdrawalSchema,
 } = require('../../validators/v1/transaction.validator');
 const {
-    deposit,
-    withdraw,
-    getTransactions,
-    getTotalAmounts,
-    getTransactionById,
-    deleteTransaction,
-    updateTransaction,
-    approveWithdrawal,
-    getChartData,
+  deposit,
+  withdraw,
+  getTransactions,
+  getTotalAmounts,
+  getTransactionById,
+  deleteTransaction,
+  updateTransaction,
+  approveWithdrawal,
+  getChartData,
 } = require('../../controllers/v1/transaction.controller');
 const { cacheResponse } = require('../../middlewares/cache.middleware');
 
 router.get(
-    '/',
-    auth,
-    permit('transaction', 'read'),
-    validate(getTransactionsSchema, 'query'),
-    cacheResponse({ prefix: 'transactions:list' }),
-    getTransactions
+  '/',
+  auth,
+  permit('transaction', 'read'),
+  validate(getTransactionsSchema, 'query'),
+  cacheResponse({ prefix: 'transactions:list' }),
+  getTransactions,
 );
 router.get(
-    '/total-amounts',
-    auth,
-    permit('transaction', 'read'),
-    cacheResponse({ prefix: 'transactions:total' }),
-    getTotalAmounts
+  '/total-amounts',
+  auth,
+  permit('transaction', 'read'),
+  cacheResponse({ prefix: 'transactions:total' }),
+  getTotalAmounts,
 );
 router.get(
-    '/chart',
-    auth,
-    permit('transaction', 'read'),
-    validate(getChartDataSchema, 'query'),
-    cacheResponse({ prefix: 'transactions:chart' }),
-    getChartData
+  '/chart',
+  auth,
+  permit('transaction', 'read'),
+  validate(getChartDataSchema, 'query'),
+  cacheResponse({ prefix: 'transactions:chart' }),
+  getChartData,
 );
 router.get(
-    '/:transactionId',
-    auth,
-    permit('transaction', 'read'),
-    validate(transactionParamsSchema, 'params'),
-    cacheResponse({ prefix: 'transactions:detail' }),
-    getTransactionById
+  '/:transactionId',
+  auth,
+  permit('transaction', 'read'),
+  validate(transactionParamsSchema, 'params'),
+  cacheResponse({ prefix: 'transactions:detail' }),
+  getTransactionById,
 );
 router.patch(
-    '/:transactionId',
-    auth,
-    permit('transaction', 'update'),
-    validate(transactionParamsSchema, 'params'),
-    validate(updateTransactionSchema, 'body'),
-    updateTransaction
+  '/:transactionId',
+  auth,
+  permit('transaction', 'update'),
+  validate(transactionParamsSchema, 'params'),
+  validate(updateTransactionSchema, 'body'),
+  updateTransaction,
 );
 router.delete(
-    '/:transactionId',
-    auth,
-    permit('transaction', 'delete'),
-    validate(transactionParamsSchema, 'params'),
-    deleteTransaction
+  '/:transactionId',
+  auth,
+  permit('transaction', 'delete'),
+  validate(transactionParamsSchema, 'params'),
+  deleteTransaction,
 );
 
 // Deposit and Withdrawal Routes
 router.post('/deposit', auth, permit('deposit', 'create'), validate(depositSchema, 'body'), deposit);
 router.post('/withdraw', auth, permit('withdrawal', 'create'), validate(withdrawSchema, 'body'), withdraw);
 router.post(
-    '/withdraw/approve',
-    auth,
-    permit('withdrawal', 'approve'),
-    validate(approveWithdrawalSchema, 'body'),
-    approveWithdrawal
+  '/withdraw/approve',
+  auth,
+  permit('withdrawal', 'approve'),
+  validate(approveWithdrawalSchema, 'body'),
+  approveWithdrawal,
 );
 
 module.exports = router;

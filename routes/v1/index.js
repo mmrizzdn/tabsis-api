@@ -9,7 +9,7 @@ const studentRouter = require('./student.routes');
 const createSuccess = require('../../utils/http-success');
 
 router.get('/', (req, res) => {
-    return createSuccess.ok(res, 'OK');
+  return createSuccess.ok(res, 'OK');
 });
 router.use('/auth', authRouter);
 router.use('/users', userRouter);

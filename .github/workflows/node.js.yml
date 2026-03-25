@@ -1,71 +1,42 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: Node.js CI
 
 on:
   push:
-    branches: ['main']
-  pull_request:
-    branches: ['main']
+    branches:
+      - 'develop'
+      - 'main'
 
 jobs:
   deploy:
-    environment: development-server
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'tabsis-api / production' || 'tabsis-api / development' }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Install NodeJS 22.x
+        uses: actions/setup-node@v4
         with:
-          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+          node-version: 22.x
 
-      - name: Deploy to Server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-              set -e
-              
-              NGROK_TOKEN="${{ secrets.NGROK_AUTH_TOKEN }}"
+      - name: Install Packages
+        run: npm install
 
-              if [ ! -d ${{ secrets.APP_DIR }} ]; then
-                  echo "App directory does not exist. Cloning repository..."
-                  git clone ${{ secrets.REPO_URL }} ${{ secrets.APP_DIR }}
-              fi
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
 
-              cd ${{ secrets.APP_DIR }}
+      - name: Run Migration
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-              echo "Fetching latest code..."
-              git fetch --all
-              git reset --hard origin/main
+      - name: Run Seeder
+        run: npm run seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-              echo "Installing dependencies..."
-              export NVM_DIR="$HOME/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-              npm install
-
-              echo "Running Prisma migrations..."
-              npx prisma migrate deploy
-
-              echo "Restarting PM2 processes..."
-              pm2 reload all --update-env || pm2 start ecosystem.config.cjs
-
-              if [ -n "$NGROK_TOKEN" ]; then
-                  echo "Stopping ngrok..."
-                  pkill ngrok || true
-              
-                  echo "Starting ngrok tunnel..."
-                  nohup ngrok http ${{ secrets.APP_PORT }} --authtoken "$NGROK_TOKEN" --log=stdout > /tmp/ngrok.log 2>&1 &
-                  sleep 3
-                  
-                  NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 || echo "")
-                  if [ -n "$NGROK_URL" ]; then
-                      echo "Ngrok tunnel started: $NGROK_URL"
-                  else
-                      echo "Ngrok started but URL not available yet. Check logs: /tmp/ngrok.log"
-                  fi
-              fi
-          EOF
+      - name: Deploy to Railway
+        run: railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
