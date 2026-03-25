@@ -190,8 +190,8 @@ module.exports = {
       phoneNumber: result.details.phoneNumber,
       status: result.status,
       withdrawalReason: result.withdrawalReason?.reason,
-      approvedBy: r.approvedBy,
-      approvedAt: r.approvedAt,
+      approvedBy: result.approvedBy,
+      approvedAt: result.approvedAt,
       updatedAt: result.updatedAt,
     };
   },
@@ -442,6 +442,10 @@ module.exports = {
             student: { select: { id: true } },
           },
         });
+
+        if (!parent || !parent.student) {
+          throw createError(404, 'No student associated with this parent account');
+        }
 
         studentId = parent.student.id;
       }
@@ -704,5 +708,142 @@ module.exports = {
 
       return Object.values(chartData);
     });
+  },
+
+  getTransactionReceiptWhatsappLink: async (payload) => {
+    let { id, user } = payload;
+
+    let conditions = { AND: [{ id }, { status: TransactionStatus.SUCCESS }] };
+
+    if (user.role === 'Teacher') {
+      let currUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { teacher: { select: { grade: true } } },
+      });
+      conditions.AND.push({ student: { grade: currUser.teacher.grade } });
+    }
+
+    let transaction = await prisma.transaction.findFirst({
+      where: conditions,
+      select: {
+        amount: true,
+        date: true,
+        type: true,
+        details: true,
+        student: {
+          select: {
+            name: true,
+            balance: true,
+            parent: { select: { profile: { select: { phoneNumber: true } } } },
+          },
+        },
+      },
+    });
+
+    if (!transaction) {
+      throw createError(404, 'Transaction not found or not yet approved');
+    }
+
+    let phoneNumber = transaction.student.parent.profile?.phoneNumber;
+    if (!phoneNumber) {
+      throw createError(400, 'Parent phone number not available');
+    }
+
+    let date = new Date(transaction.date);
+    let formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+
+    let amount = Number(transaction.amount);
+    let balance = Number(transaction.student.balance);
+    let formatCurrency = (val) => `Rp. ${val.toLocaleString('id-ID')},-`;
+
+    let message;
+    if (transaction.type === TransactionType.DEPOSIT) {
+      message =
+        `Hai ${transaction.student.name}, transaksi tabungan berhasil ditambahkan\n\n` +
+        `================\n` +
+        `Tanggal : ${formattedDate}\n` +
+        `Jumlah setoran hari ini : ${formatCurrency(amount)}\n` +
+        `Jumlah total tabungan : ${formatCurrency(balance)}`;
+    } else {
+      message =
+        `Hai ${transaction.student.name}, penarikan tabungan berhasil diproses\n\n` +
+        `================\n` +
+        `Tanggal : ${formattedDate}\n` +
+        `Jumlah penarikan : ${formatCurrency(amount)}\n` +
+        `Jumlah total tabungan : ${formatCurrency(balance)}`;
+    }
+
+    let whatsappLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+    return {
+      whatsappLink,
+    };
+  },
+
+  getWithdrawalRequestWhatsappLink: async (payload) => {
+    let { id, user } = payload;
+
+    let conditions = { AND: [{ id }, { type: TransactionType.WITHDRAWAL }, { status: TransactionStatus.PENDING }] };
+
+    if (user.role === 'Parent') {
+      conditions.AND.push({ student: { parentId: user.id } });
+    }
+
+    let transaction = await prisma.transaction.findFirst({
+      where: conditions,
+      select: {
+        amount: true,
+        date: true,
+        type: true,
+        student: {
+          select: {
+            name: true,
+            teacher: {
+              select: {
+                user: {
+                  select: {
+                    profile: {
+                      select: {
+                        phoneNumber: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!transaction) {
+      throw createError(404, 'Transaction not found or not a pending withdrawal');
+    }
+
+    let teacherPhoneNumber = transaction.student.teacher?.user?.profile?.phoneNumber;
+
+    if (!teacherPhoneNumber) {
+      throw createError(400, 'Teacher phone number not available');
+    }
+
+    let date = new Date(transaction.date);
+    let monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    let formattedDate = `${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+
+    let amount = Number(transaction.amount);
+    let formatCurrency = (val) => `Rp. ${val.toLocaleString('id-ID')},-`;
+
+    let message =
+      `Halo,\n\n` +
+      `Saya orang tua dari ${transaction.student.name} ingin memberitahukan bahwa saya telah mengajukan penarikan tabungan sebesar ${formatCurrency(amount)} pada ${formattedDate}.\n` +
+      `Mohon bantuannya untuk memeriksa dan menyetujui pengajuan tersebut di aplikasi.\n\n` +
+      `Terima kasih.`;
+
+    let whatsappLink = `https://wa.me/${teacherPhoneNumber}?text=${encodeURIComponent(message)}`;
+
+    return {
+      whatsappLink,
+    };
   },
 };

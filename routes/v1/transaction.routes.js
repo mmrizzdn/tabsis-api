@@ -23,6 +23,8 @@ const {
   updateTransaction,
   approveWithdrawal,
   getChartData,
+  getTransactionReceiptWhatsappLink,
+  getWithdrawalRequestWhatsappLink,
 } = require('../../controllers/v1/transaction.controller');
 const { cacheResponse } = require('../../middlewares/cache.middleware');
 
@@ -56,6 +58,20 @@ router.get(
   validate(transactionParamsSchema, 'params'),
   cacheResponse({ prefix: 'transactions:detail' }),
   getTransactionById,
+);
+router.get(
+  '/:transactionId/whatsapp-link/receipt',
+  auth,
+  permit('whatsapp-link', 'generate-transaction-receipt'),
+  validate(transactionParamsSchema, 'params'),
+  getTransactionReceiptWhatsappLink,
+);
+router.get(
+  '/:transactionId/whatsapp-link/withdrawal-request',
+  auth,
+  permit('whatsapp-link', 'generate-withdrawal-request'),
+  validate(transactionParamsSchema, 'params'),
+  getWithdrawalRequestWhatsappLink,
 );
 router.patch(
   '/:transactionId',
