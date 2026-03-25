@@ -97,7 +97,7 @@ model Profile {
     userId      String   @unique @map("user_id")
     avatarId    String?  @unique @map("avatar_id")
     name        String
-    phoneNumber String?  @map("phone_number")
+    phoneNumber String   @map("phone_number")
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -105,19 +105,19 @@ model Profile {
     avatar File? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
 
     @@map("profiles")
-}   
+}
 
 model File {
-    id                  String   @id @default(uuid())
-    imagekitId          String   @unique @map("imagekit_id")
-    filename            String
-    url                 String
-    mimetype            String
-    size                Int
-    thumbnailUrl        String?  @map("thumbnail_url")
-    uploadedById        String?  @map("uploaded_by")
-    uploadedAt          DateTime @default(now()) @map("uploaded_at")
-    updatedAt           DateTime @updatedAt @map("updated_at")
+    id           String   @id @default(uuid())
+    imagekitId   String   @unique @map("imagekit_id")
+    filename     String
+    url          String
+    mimetype     String
+    size         Int
+    thumbnailUrl String?  @map("thumbnail_url")
+    uploadedById String?  @map("uploaded_by")
+    uploadedAt   DateTime @default(now()) @map("uploaded_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
 
     uploadedBy    User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
     profileAvatar Profile?

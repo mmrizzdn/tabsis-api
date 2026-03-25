@@ -369,7 +369,7 @@ module.exports = {
   },
 
   createTeacherUser: async (payload) => {
-    let { name, grade, username, password } = payload;
+    let { name, grade, username, password, phoneNumber } = payload;
 
     return prisma.$transaction(async (tx) => {
       let teacher = await tx.teacher.findUnique({
@@ -400,7 +400,7 @@ module.exports = {
       let data = {
         username,
         password: hashedPassword,
-        profile: { create: { name } },
+        profile: { create: { name, phoneNumber: normalizePhone(phoneNumber) } },
         role: { connect: { name: 'Teacher' } },
         teacher: { connect: { grade } },
       };
@@ -425,6 +425,7 @@ module.exports = {
         username: result.username,
         role: result.role.name,
         createdAt: result.createdAt,
+        phoneNumber: result.profile.phoneNumber,
         updatedAt: result.updatedAt,
       };
     });

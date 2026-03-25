@@ -104,13 +104,14 @@ module.exports = {
 
   createTeacherUser: async (req, res, next) => {
     try {
-      let { name, grade, username, password } = req.body;
+      let { name, grade, username, password, phoneNumber } = req.body;
 
       let result = await createTeacherUser({
         name,
         grade,
         username,
         password,
+        phoneNumber,
       });
 
       await cache.delByPattern('users:teachers:*');
