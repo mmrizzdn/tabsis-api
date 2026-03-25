@@ -710,7 +710,7 @@ module.exports = {
     });
   },
 
-  getTransactionReceiptWhatsappLink: async (payload) => {
+  getTransactionReceiptWhatsappUrl: async (payload) => {
     let { id, user } = payload;
 
     let conditions = { AND: [{ id }, { status: TransactionStatus.SUCCESS }] };
@@ -773,14 +773,14 @@ module.exports = {
         `Jumlah total tabungan : ${formatCurrency(balance)}`;
     }
 
-    let whatsappLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    let whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
     return {
-      whatsappLink,
+      whatsappUrl,
     };
   },
 
-  getWithdrawalRequestWhatsappLink: async (payload) => {
+  getWithdrawalRequestWhatsappUrl: async (payload) => {
     let { id, user } = payload;
 
     let conditions = { AND: [{ id }, { type: TransactionType.WITHDRAWAL }, { status: TransactionStatus.PENDING }] };
@@ -853,10 +853,10 @@ module.exports = {
       `Mohon bantuannya untuk memeriksa dan menyetujui pengajuan tersebut di aplikasi.\n\n` +
       `Terima kasih.`;
 
-    let whatsappLink = `https://wa.me/${teacherPhoneNumber}?text=${encodeURIComponent(message)}`;
+    let whatsappUrl = `https://wa.me/${teacherPhoneNumber}?text=${encodeURIComponent(message)}`;
 
     return {
-      whatsappLink,
+      whatsappUrl,
     };
   },
 };

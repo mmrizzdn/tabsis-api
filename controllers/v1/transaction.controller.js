@@ -8,8 +8,8 @@ const {
   updateTransaction,
   approveWithdrawal,
   getChartData,
-  getTransactionReceiptWhatsappLink,
-  getWithdrawalRequestWhatsappLink,
+  getTransactionReceiptWhatsappUrl,
+  getWithdrawalRequestWhatsappUrl,
 } = require('../../services/v1/transaction.service');
 const createSuccess = require('../../utils/http-success');
 const cache = require('../../libs/cache');
@@ -170,9 +170,9 @@ module.exports = {
     }
   },
 
-  getTransactionReceiptWhatsappLink: async (req, res, next) => {
+  getTransactionReceiptWhatsappUrl: async (req, res, next) => {
     try {
-      let result = await getTransactionReceiptWhatsappLink({ id: req.params.transactionId, user: req.user });
+      let result = await getTransactionReceiptWhatsappUrl({ id: req.params.transactionId, user: req.user });
 
       return createSuccess.ok(res, 'OK', result);
     } catch (err) {
@@ -180,9 +180,9 @@ module.exports = {
     }
   },
 
-  getWithdrawalRequestWhatsappLink: async (req, res, next) => {
+  getWithdrawalRequestWhatsappUrl: async (req, res, next) => {
     try {
-      let result = await getWithdrawalRequestWhatsappLink({ id: req.params.transactionId, user: req.user });
+      let result = await getWithdrawalRequestWhatsappUrl({ id: req.params.transactionId, user: req.user });
 
       return createSuccess.ok(res, 'OK', result);
     } catch (err) {

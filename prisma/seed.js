@@ -50,7 +50,7 @@ let main = async () => {
         { resource: 'parent', action: 'delete' },
         { resource: 'profile', action: 'read' },
         { resource: 'profile', action: 'update' },
-        { resource: 'whatsapp-link', action: 'generate-transaction-receipt' },
+        { resource: 'whatsapp-url', action: 'generate-transaction-receipt' },
       ],
     },
     {
@@ -61,7 +61,7 @@ let main = async () => {
         { resource: 'transaction', action: 'read' },
         { resource: 'profile', action: 'read' },
         { resource: 'profile', action: 'update' },
-        { resource: 'whatsapp-link', action: 'generate-withdrawal-request' },
+        { resource: 'whatsapp-url', action: 'generate-withdrawal-request' },
       ],
     },
   ];

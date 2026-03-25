@@ -23,8 +23,8 @@ const {
   updateTransaction,
   approveWithdrawal,
   getChartData,
-  getTransactionReceiptWhatsappLink,
-  getWithdrawalRequestWhatsappLink,
+  getTransactionReceiptWhatsappUrl,
+  getWithdrawalRequestWhatsappUrl,
 } = require('../../controllers/v1/transaction.controller');
 const { cacheResponse } = require('../../middlewares/cache.middleware');
 
@@ -60,18 +60,18 @@ router.get(
   getTransactionById,
 );
 router.get(
-  '/:transactionId/whatsapp-link/receipt',
+  '/:transactionId/whatsapp-Url/receipt',
   auth,
-  permit('whatsapp-link', 'generate-transaction-receipt'),
+  permit('whatsapp-Url', 'generate-transaction-receipt'),
   validate(transactionParamsSchema, 'params'),
-  getTransactionReceiptWhatsappLink,
+  getTransactionReceiptWhatsappUrl,
 );
 router.get(
-  '/:transactionId/whatsapp-link/withdrawal-request',
+  '/:transactionId/whatsapp-Url/withdrawal-request',
   auth,
-  permit('whatsapp-link', 'generate-withdrawal-request'),
+  permit('whatsapp-Url', 'generate-withdrawal-request'),
   validate(transactionParamsSchema, 'params'),
-  getWithdrawalRequestWhatsappLink,
+  getWithdrawalRequestWhatsappUrl,
 );
 router.patch(
   '/:transactionId',
