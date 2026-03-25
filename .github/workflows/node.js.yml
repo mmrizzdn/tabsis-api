@@ -32,7 +32,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run Seeder
-        run: npm run seed
+        run: npx prisma db seed
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
