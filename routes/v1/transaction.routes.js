@@ -60,16 +60,16 @@ router.get(
   getTransactionById,
 );
 router.get(
-  '/:transactionId/whatsapp-Url/receipt',
+  '/:transactionId/whatsapp-url/receipt',
   auth,
-  permit('whatsapp-Url', 'generate-transaction-receipt'),
+  permit('whatsapp-url', 'generate-transaction-receipt'),
   validate(transactionParamsSchema, 'params'),
   getTransactionReceiptWhatsappUrl,
 );
 router.get(
-  '/:transactionId/whatsapp-Url/withdrawal-request',
+  '/:transactionId/whatsapp-url/withdrawal-request',
   auth,
-  permit('whatsapp-Url', 'generate-withdrawal-request'),
+  permit('whatsapp-url', 'generate-withdrawal-request'),
   validate(transactionParamsSchema, 'params'),
   getWithdrawalRequestWhatsappUrl,
 );
