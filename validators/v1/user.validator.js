@@ -13,7 +13,6 @@ const baseUserSchema = z.object({
     .string()
     .trim()
     .regex(/^((\+62)|62|0)8[1-9][0-9]{7,11}$/),
-  grade: z.coerce.number().int().positive().min(1).max(6),
 });
 
 module.exports = {
@@ -37,6 +36,7 @@ module.exports = {
           .regex(/^(?!0{10})[0-9]{10}$/),
         studentName: z.string().trim().min(3).max(100),
         parentName: z.string().trim().min(3).max(100),
+        grade: z.coerce.number().int().positive().min(1).max(6).optional(),
       })
       .superRefine((data, ctx) => {
         let isSuperadmin = req.user?.role === 'Superadmin';
